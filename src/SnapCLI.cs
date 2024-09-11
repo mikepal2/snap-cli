@@ -1,15 +1,16 @@
-﻿using System.CommandLine.Invocation;
+﻿using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Reflection;
 
-namespace System.CommandLine.SimpleCLI
+namespace SnapCLI
 {
 
-// CLIDescriptorAttribute is only used as base for other CLI attributes and should not be used by clients,
+// CliDescriptorAttribute is only used as base for other CLI attributes and should not be used by clients,
 // therefore we don't generate XML documentation for this class
 #pragma warning disable 1591
 
     [AttributeUsage(AttributeTargets.All)]
-    public class CLIDescriptorAttribute : Attribute
+    public class CliDescriptorAttribute : Attribute
     {
         public enum DescKind
         {
@@ -30,9 +31,9 @@ namespace System.CommandLine.SimpleCLI
         public ArgumentArity? Arity { get; }
 
         // only allow to use this attribute in subclasses
-        private CLIDescriptorAttribute() { }
+        private CliDescriptorAttribute() { }
 
-        protected CLIDescriptorAttribute(DescKind kind, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        protected CliDescriptorAttribute(DescKind kind, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
         {
             Kind = kind;
             Name = name;
@@ -43,7 +44,7 @@ namespace System.CommandLine.SimpleCLI
             Aliases = aliases;
         }
 
-        protected CLIDescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        protected CliDescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
             : this(kind, name, helpName, aliases, description, hidden, required)
         {
             Arity = new ArgumentArity(arityMin, arityMax);
@@ -61,7 +62,7 @@ namespace System.CommandLine.SimpleCLI
     /// <remark>Can be also used on static fields and properies to declare global options.</remark>
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.Field)]
-    public class CLIOptionAttribute : CLIDescriptorAttribute
+    public class CliOptionAttribute : CliDescriptorAttribute
     {
         /// <summary>
         /// Declares CLI <b>option</b> definition.
@@ -72,7 +73,7 @@ namespace System.CommandLine.SimpleCLI
         /// <param name="description">Option description</param>
         /// <param name="hidden">Hidden options are not shown in help but still can be used</param>
         /// <param name="required">Required options must be always specified in command line</param>
-        public CLIOptionAttribute(string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        public CliOptionAttribute(string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
             : base(DescKind.Option, name, helpName, aliases, description, hidden, required) { }
 
         /// <summary>
@@ -86,7 +87,7 @@ namespace System.CommandLine.SimpleCLI
         /// <param name="description">Option description</param>
         /// <param name="hidden">Hidden options are not shown in help but still can be used</param>
         /// <param name="required">Required options must be always specified in command line</param>
-        public CLIOptionAttribute(int arityMin, int arityMax, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        public CliOptionAttribute(int arityMin, int arityMax, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
             : base(DescKind.Option, arityMin, arityMax, name, helpName, aliases, description, hidden, required) { }
     }
 
@@ -94,7 +95,7 @@ namespace System.CommandLine.SimpleCLI
     /// Declares <b>argument</b> definition for CLI command.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
-    public class CLIArgumentAttribute : CLIDescriptorAttribute
+    public class CliArgumentAttribute : CliDescriptorAttribute
     {
         /// <summary>
         /// Declares <b>argument</b> definition for CLI command.
@@ -103,7 +104,7 @@ namespace System.CommandLine.SimpleCLI
         /// <param name="helpName">Argument name in help</param>
         /// <param name="description">Argument description</param>
         /// <param name="hidden">Hidden arguments are not shown in help but still can be used</param>
-        public CLIArgumentAttribute(string? name = null, string? helpName = null, string? description = null, bool hidden = false)
+        public CliArgumentAttribute(string? name = null, string? helpName = null, string? description = null, bool hidden = false)
             : base(DescKind.Argument, name, helpName, aliases: null, description, hidden) { }
 
         /// <summary>
@@ -115,7 +116,7 @@ namespace System.CommandLine.SimpleCLI
         /// <param name="helpName">Argument name in help</param>
         /// <param name="description">Argument description</param>
         /// <param name="hidden">Hidden arguments are not shown in help but still can be used</param>
-        public CLIArgumentAttribute(int arityMin, int arityMax, string? name = null, string? helpName = null, string? description = null, bool hidden = false)
+        public CliArgumentAttribute(int arityMin, int arityMax, string? name = null, string? helpName = null, string? description = null, bool hidden = false)
         : base(DescKind.Argument, arityMin, arityMax, name, helpName, aliases: null, description, hidden) { }
     }
 
@@ -125,8 +126,8 @@ namespace System.CommandLine.SimpleCLI
     /// </summary>
     /// <param name="description">Root command description, also serving as programs general description when help is shown.</param>
     [AttributeUsage(AttributeTargets.Method)]
-    public class CLIRootCommandAttribute(string? description = null)
-        : CLIDescriptorAttribute(DescKind.RootCommand, description: description)  { }
+    public class CliRootCommandAttribute(string? description = null)
+        : CliDescriptorAttribute(DescKind.RootCommand, description: description)  { }
 
     /// <summary>
     /// Declares handler for CLI <see cref="Command"/>. 
@@ -144,8 +145,8 @@ namespace System.CommandLine.SimpleCLI
     /// <param name="description">Command description</param>
     /// <param name="hidden">Hidden commands are not shown in help but still can be used</param>
     [AttributeUsage(AttributeTargets.Method)]
-    public class CLICommandAttribute(string? name = null, string[]? aliases = null, string? description = null, bool hidden = false)
-        : CLIDescriptorAttribute(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden) { }
+    public class CliCommandAttribute(string? name = null, string[]? aliases = null, string? description = null, bool hidden = false)
+        : CliDescriptorAttribute(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden) { }
 
     /// <summary>
     /// Declares command without handler.
@@ -162,8 +163,8 @@ namespace System.CommandLine.SimpleCLI
     /// <param name="aliases">Command aliases</param>
     /// <param name="description">Command description</param>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    public class CLIParentCommandAttribute(string name, string description, string[]? aliases = null)
-    : CLIDescriptorAttribute(DescKind.Command, name: name, aliases: aliases, description: description) { }
+    public class CliParentCommandAttribute(string name, string description, string[]? aliases = null)
+    : CliDescriptorAttribute(DescKind.Command, name: name, aliases: aliases, description: description) { }
 
     /// <summary>
     /// Provides program description to me show on main help.
@@ -174,7 +175,7 @@ namespace System.CommandLine.SimpleCLI
     /// </summary>
     /// <param name="description">Program description</param>
     [AttributeUsage(AttributeTargets.Assembly)]
-    public class CLIProgramAttribute(string description) : Attribute
+    public class CliProgramAttribute(string description) : Attribute
     {
         /// <summary>
         /// Program description to me show on main help.
@@ -227,10 +228,10 @@ namespace System.CommandLine.SimpleCLI
         private class CommandMethodDesc
         {
             public string CommandName;
-            public CLIDescriptorAttribute Desc;
+            public CliDescriptorAttribute Desc;
             public MethodInfo Method;
 
-            public CommandMethodDesc(MethodInfo method, CLIDescriptorAttribute desc)
+            public CommandMethodDesc(MethodInfo method, CliDescriptorAttribute desc)
             {
                 Method = method;
                 Desc = desc;
@@ -265,24 +266,24 @@ namespace System.CommandLine.SimpleCLI
 
             // add parent commands described with [assembly:CLIParentCommand(...)] 
 
-            var parentCommands = assembly.GetCustomAttributes<CLIParentCommandAttribute>()
+            var parentCommands = assembly.GetCustomAttributes<CliParentCommandAttribute>()
                 .Select(desc => CreateAndAddCommand(rootCommand, desc.Name!, desc))
                 .ToArray();
 
-            // add properties and fields described with [CLIOption]
+            // add properties and fields described with [CliOption]
 
             var globalOptionsInitializersList = new List<Action<InvocationContext>>();
 
             foreach (var (prop, desc) in assembly.GetTypes()
                 .SelectMany(t => t.GetProperties(bindingFlags))
-                .Select(x => new { prop = x, desc = x.GetCustomAttribute<CLIDescriptorAttribute>() })
-                .Where(x => x.desc != null && x.desc.Kind == CLIDescriptorAttribute.DescKind.Option)
+                .Select(x => new { prop = x, desc = x.GetCustomAttribute<CliDescriptorAttribute>() })
+                .Where(x => x.desc != null && x.desc.Kind == CliDescriptorAttribute.DescKind.Option)
                 .Select(x => (x.prop, x.desc!)))
             {
                 if (!prop.CanWrite)
-                    throw new InvalidOperationException($"Property {prop.Name} marked as [CLIOption] must be writable");
+                    throw new InvalidOperationException($"Property {prop.Name} marked as [CliOption] must be writable");
                 if (!prop.SetMethod?.IsStatic == null)
-                    throw new InvalidOperationException($"Property {prop.Name} marked as [CLIOption] must be static");
+                    throw new InvalidOperationException($"Property {prop.Name} marked as [CliOption] must be static");
                 var opt = CreateOption(desc, prop.Name, prop.PropertyType, () => prop.GetValue(null));
                 rootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => prop.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
@@ -290,14 +291,14 @@ namespace System.CommandLine.SimpleCLI
 
             foreach (var (field, desc) in assembly.GetTypes()
                 .SelectMany(t => t.GetFields(bindingFlags))
-                .Select(x => new { field = x, desc = x.GetCustomAttribute<CLIDescriptorAttribute>() })
-                .Where(x => x.desc != null && x.desc.Kind == CLIDescriptorAttribute.DescKind.Option)
+                .Select(x => new { field = x, desc = x.GetCustomAttribute<CliDescriptorAttribute>() })
+                .Where(x => x.desc != null && x.desc.Kind == CliDescriptorAttribute.DescKind.Option)
                 .Select(x => (x.field, x.desc!)))
             {
                 if (field.IsInitOnly)
-                    throw new InvalidOperationException($"Field {field.Name} marked as [CLIOption] must be writable");
+                    throw new InvalidOperationException($"Field {field.Name} marked as [CliOption] must be writable");
                 if (!field.IsStatic)
-                    throw new InvalidOperationException($"Field {field.Name} marked as [CLIOption] must be static");
+                    throw new InvalidOperationException($"Field {field.Name} marked as [CliOption] must be static");
                 var opt = CreateOption(desc, field.Name, field.FieldType, () => field.GetValue(null));
                 rootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => field.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
@@ -311,7 +312,7 @@ namespace System.CommandLine.SimpleCLI
                 AddCommandHandler(rootCommand, rootMethod.Method, globalOptionsInitializers);
 
             foreach (var m in methods
-                .Where(m => m.Desc.Kind == CLIDescriptorAttribute.DescKind.Command && m != rootMethod)
+                .Where(m => m.Desc.Kind == CliDescriptorAttribute.DescKind.Command && m != rootMethod)
                 .OrderBy(m => m.CommandName.Length)) // sort by name length to ensure parent commands created before subcommands
             {
                 var command = CreateAndAddCommand(rootCommand, m.CommandName, m.Desc);
@@ -329,11 +330,11 @@ namespace System.CommandLine.SimpleCLI
 
         private static List<CommandMethodDesc> GetCommandMethods(Assembly assembly, BindingFlags bindingFlags)
         {
-            // find method tagged with CLIRootCommand or CLICommand attributes
+            // find method tagged with CliRootCommand or CliCommand attributes
 
             return assembly.GetTypes()
                                   .SelectMany(t => t.GetMethods(bindingFlags))
-                                  .Select(m => new { method = m, desc = m.GetCustomAttribute<CLIDescriptorAttribute>() })
+                                  .Select(m => new { method = m, desc = m.GetCustomAttribute<CliDescriptorAttribute>() })
                                   .Where(m => m.desc != null)
                                   .Select(m => new CommandMethodDesc(m.method, m.desc!))
                                   .ToList();
@@ -345,16 +346,16 @@ namespace System.CommandLine.SimpleCLI
 
             // TODO: add documentation link
             if (methods.Count == 0)
-                throw new InvalidOperationException("Cannot find methods with [CLICommand] attribute, see documentation");
+                throw new InvalidOperationException("Cannot find methods with [CliCommand] attribute, see documentation");
 
             // if we have only one method not named explicitly - use it as root
             if (methods.Count == 1 && string.IsNullOrEmpty(methods[0].Desc.Name))
                 return methods[0];
 
-            foreach (var m in methods.Where(m => m.Desc.Kind == CLIDescriptorAttribute.DescKind.RootCommand))
+            foreach (var m in methods.Where(m => m.Desc.Kind == CliDescriptorAttribute.DescKind.RootCommand))
             {
                 if (rootMethod != null)
-                    throw new InvalidOperationException("Only one method can be marked as [CLIRootCommand]");
+                    throw new InvalidOperationException("Only one method can be marked as [CliRootCommand]");
                 rootMethod = m;
             }
 
@@ -363,11 +364,11 @@ namespace System.CommandLine.SimpleCLI
 
         private static string? GetAssemblyDescription(Assembly assembly)
         {
-            return assembly.GetCustomAttribute<CLIProgramAttribute>()?.Description ??
+            return assembly.GetCustomAttribute<CliProgramAttribute>()?.Description ??
                    assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description;
         }
 
-        private static Command CreateAndAddCommand(RootCommand rootCommand, string name, CLIDescriptorAttribute desc)
+        private static Command CreateAndAddCommand(RootCommand rootCommand, string name, CliDescriptorAttribute desc)
         {
             var subcommandNames = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             Command parentCommand = rootCommand;
@@ -388,7 +389,7 @@ namespace System.CommandLine.SimpleCLI
             if (command == null)
                 throw new InvalidOperationException();
             if (!created)
-                throw new InvalidOperationException($"Command '{name}' has multiple [CLICommand] definitions");
+                throw new InvalidOperationException($"Command '{name}' has multiple [CliCommand] definitions");
             if (desc.Aliases != null)
                 foreach (var alias in desc.Aliases)
                     command.AddAlias(alias);
@@ -403,7 +404,7 @@ namespace System.CommandLine.SimpleCLI
                 throw new InvalidOperationException($"Command '{command.Name}' has multiple handler methods");
 
             if (!method.IsStatic)
-                throw new InvalidOperationException($"Method {method.Name} marked as [CLICommand] must be static");
+                throw new InvalidOperationException($"Method {method.Name} marked as [CliCommand] must be static");
 
             // FIXME: generic type name is shown as Task`1 instead of Task<int>
             if (!SupportedReturnTypes.Any(t => t.IsAssignableFrom(method.ReturnType)))
@@ -413,15 +414,15 @@ namespace System.CommandLine.SimpleCLI
 
             foreach (var param in method.GetParameters())
             {
-                var info = param.GetCustomAttribute<CLIDescriptorAttribute>() ?? new CLIOptionAttribute();
+                var info = param.GetCustomAttribute<CliDescriptorAttribute>() ?? new CliOptionAttribute();
                 switch (info.Kind)
                 {
-                    case CLIDescriptorAttribute.DescKind.Option:
+                    case CliDescriptorAttribute.DescKind.Option:
                         var option = CreateOption(info, param.Name, param.ParameterType, param.HasDefaultValue && param.DefaultValue != null ? () => param.DefaultValue : null);
                         command.AddOption(option);
                         paramInfo.Add(option);
                         break;
-                    case CLIDescriptorAttribute.DescKind.Argument:
+                    case CliDescriptorAttribute.DescKind.Argument:
                         var argument = CreateArgument(info, param.Name, param.ParameterType, param.HasDefaultValue && param.DefaultValue != null ? () => param.DefaultValue : null);
                         command.AddArgument(argument);
                         paramInfo.Add(argument);
@@ -487,7 +488,7 @@ namespace System.CommandLine.SimpleCLI
             });
         }
 
-        private static Option CreateOption(CLIDescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
+        private static Option CreateOption(CliDescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
         {
             var genericType = typeof(Option<>).MakeGenericType([valueType]);
             var name = info.Name ?? memberName ?? throw new NotSupportedException($"Option name cannot be deduced from parameter [{info}], specify name explicitly");
@@ -516,7 +517,7 @@ namespace System.CommandLine.SimpleCLI
             }
         }
 
-        private static Argument CreateArgument(CLIDescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
+        private static Argument CreateArgument(CliDescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
         {
             var genericType = typeof(Argument<>).MakeGenericType([valueType]);
             var name = info.Name ?? memberName ?? throw new NotSupportedException($"Argument name cannot be deduced from parameter [{info}], specify name explicitly");

@@ -4,7 +4,9 @@
     <TargetFrameworks>net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>Michael Pavlushik</Authors>
+    <Version>1.0.0-pre</Version>
   </PropertyGroup>
 
   <ItemGroup>
