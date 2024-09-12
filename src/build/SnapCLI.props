@@ -1,0 +1,7 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Automatically generate Program.Main entry point which will call SnapCLI to parse command line -->
+    <AutoGenerateEntryPoint>true</AutoGenerateEntryPoint>
+  </PropertyGroup>
+</Project>
