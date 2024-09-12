@@ -3,21 +3,21 @@
 // Example of simple CLI program 
 
 // this description will be shown on main help 
-[assembly:CliProgram("Inventory database manager")]
+[assembly:Program("Inventory database manager")]
 
 internal class Program
 {
     // Here we declare global option
-    [CliOption(name:"database", description:"Inventory database file", aliases: ["db"], helpName:"filepath")]
+    [Option(name:"database", description:"Inventory database file", aliases: ["db"], helpName:"filepath")]
     private static string s_databasePath = "inventory.json";
     
 
-    [CliCommand(description:"Add item to the inventory")]
+    [Command(description:"Add item to the inventory")]
     public static void Add(
-        [CliArgument(description:"Inventory item name")] 
+        [Argument(description:"Inventory item name")] 
         string item, 
 
-        [CliArgument(description:"Item quantity to add")] 
+        [Argument(description:"Item quantity to add")] 
         int quantity = 1)
     {
         using var inventory = new Inventory(s_databasePath);
@@ -31,15 +31,15 @@ internal class Program
 
     }
 
-    [CliCommand(description: "Remove item from the inventory")]
+    [Command(description: "Remove item from the inventory")]
     public static int Remove(
-        [CliOption(description:"Remove all specified items from the inventory")]
+        [Option(description:"Remove all specified items from the inventory")]
         bool all,
 
-        [CliArgument(description:"Inventory item name")]
+        [Argument(description:"Inventory item name")]
         string item,
 
-        [CliArgument(description:"Item quantity to remove")]
+        [Argument(description:"Item quantity to remove")]
         int quantity = 1
         )
     {
@@ -79,9 +79,9 @@ internal class Program
         JSON
     }
 
-    [CliCommand(description: "List items in the inventory")]
+    [Command(description: "List items in the inventory")]
     public static void List(
-        [CliOption(name: "format", aliases:["f"], description:"Output format")]
+        [Option(name: "format", aliases:["f"], description:"Output format")]
         ListFormat listFormat = ListFormat.Text
         )
     {
@@ -107,7 +107,7 @@ internal class Program
     }
 
     // hidden command will not be shown in help
-    [CliCommand(description: "Dump internal database representation (JSON)", hidden: true)]
+    [Command(description: "Dump internal database representation (JSON)", hidden: true)]
     public static void Dump()
     {
         using var inventory = new Inventory(s_databasePath);
