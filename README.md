@@ -1,5 +1,3 @@
-# simple-cli
-
 This repository contains the code for the SnapCLI library, implementing simple CLI C# interface based on [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/)
 
 ## .Net support
