@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<!-- 
+	Normally you will NOT need following lines because Nuget will take care of this.
+	But here we just referencing SnapCLI as class library and therefore have to include these references manually.
+	-->
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\SnapCLI.csproj" />
+	</ItemGroup>
+	<Import Project="..\..\src\build\SnapCLI.props" />
+	<Import Project="..\..\src\build\SnapCLI.targets" />
+
+</Project>

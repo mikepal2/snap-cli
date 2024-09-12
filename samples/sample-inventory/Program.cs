@@ -11,16 +11,6 @@ internal class Program
     [CliOption(name:"database", description:"Inventory database file", aliases: ["db"], helpName:"filepath")]
     private static string s_databasePath = "inventory.json";
     
-    // This is program entry point. 
-    private static int Main(string[] args)
-    {
-        // The CLI.Run[Async] call is necessary for commands to be recognized and executed according to the command line input.
-        // It returns a result of the command execution (error code), where 0 typically signifies success.
-        
-        // Note: Global option s_databasePath still has default value here because command line is
-        // not parsed yet. Its value will be updated inside CLI.Run() before calling command handler.
-        return CLI.Run(args);
-    }
 
     [CliCommand(description:"Add item to the inventory")]
     public static void Add(
