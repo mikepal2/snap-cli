@@ -1,5 +1,9 @@
 This repository contains the code for the SnapCLI library, implementing simple Command Line Interface (CLI) C# API based on [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/)
 
+## NuGet package
+The library is available in a NuGet package:
+- [SnapCLI](https://www.nuget.org/packages/SnapCLI/)
+
 ## Motivation
  The goal of this project is to provide a simple and effective way to handle command-line commands and parameters, allowing developers to create POSIX-like CLI applications with minimal hassle in parsing the command line and enabling them to focus on application logic. Additionally, it facilitates providing all necessary information for the application's help system, making it easily accessible to end users. The [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) project was a step in this direction, but is very limited in abilities it provides.
 
