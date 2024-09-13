@@ -286,4 +286,4 @@ Currently implemeted for .Net 8.0 with plans to support for .Net Standard
 
 ## License
 This project is licensed under the [MIT license](LICENSE.md).
-Parts of this project ([src/build/](src/build/)) borrowed with some modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT license](LICENSE-dotnet.md).
+Parts of this project ([src/build/](src/build/)) borrowed with some modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT license](LICENSE-command-line-api.md).
