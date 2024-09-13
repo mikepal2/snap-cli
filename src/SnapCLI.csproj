@@ -7,8 +7,13 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Authors>Michael Pavlushik</Authors>
 		<Description>This package includes SnapCLI app model for System.CommandLine, which allows you to create a command line application with declarations by attributes while getting support for complex type binding, error reporting, help, shell completions, and more.</Description>
-		<Version>1.0.0-pre</Version>
+		<RepositoryUrl>https://github.com/mikepal2/snap-cli</RepositoryUrl>
+		<Version>1.0.1-pre</Version>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
+		<PackageTags>C# CLI Snap Simple Easy Command Line CommandLine</PackageTags>
+		<PackageReleaseNotes>Updated nuget metadata</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -16,7 +21,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="build/*" PackagePath="build/$(TargetFramework)/" />
+		<Content Include="build/*" PackagePath="build/$(TargetFramework)" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="..\README.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
 	</ItemGroup>
 
 </Project>
