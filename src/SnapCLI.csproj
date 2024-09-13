@@ -12,7 +12,7 @@
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
-		<PackageTags>C# Snap CLI Command Line Interface CommandLine Simple Easy</PackageTags>
+		<PackageTags>Snap CLI Command Line Interface CommandLine Simple Easy</PackageTags>
 		<PackageReleaseNotes>Updated nuget metadata</PackageReleaseNotes>
 	</PropertyGroup>
 

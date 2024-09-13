@@ -20,7 +20,7 @@ There are multiple CLI frameworks that require separate class implementation for
 While this approach may not be as flexible as some other solutions, it meets the basic needs of most CLI applications. Ultimately, the goal is simplicity.
 
 # Command line syntax
-Since this project is based on the `System.CommandLine` library, the parsing rules are exactly the same as those for that package. The Microsoft [documentation](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) provides detailed explanations of the command-line syntax recognized by `System.CommandLine`. We will include more links to this documentation throughout the text below.
+Since this project is based on the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library, the parsing rules are exactly the same as those for that package. The Microsoft documentation provides detailed explanations of the [command-line syntax](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) recognized by `System.CommandLine`. We will include more links to this documentation throughout the text below.
 
 # Usage
 
@@ -49,12 +49,10 @@ static public void Hello()
 
 ##### Command name convention
 
-- If a program has only one command handler method declared with `[Command]` attribute and the command name is not explicitly specified in the `name` parameter of the attribute, this command is automatically treated as [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands) (see more [below](#root-command)).
+- If a program has only one command handler method declared with `[Command]` attribute and the command name is not explicitly specified in the `name` parameter of the attribute, this command is automatically treated as [root command](#root-command)).
 - If the command name not specified in the attribute then the method name, converted to lower case, is implicitly used as the command name. For example method `Hello()` will handle `Hello` command.
-- If method name is used implicitly and contains an underscore (`_`), it declares a [subcommand](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under `list` command.
+- If method name is used implicitly and contains an underscore (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under `list` command.
 - If name is specified explicitly and contains spaces, it declares a subcommand. For example, `name:"list orders"` declares `orders` as a subcommand of the `list` command.
-
-More information on subcommands is provided [below](#subcommands).
 
 ## Options
 An [option](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#options) is a named parameter that can be passed to a command.
@@ -189,8 +187,25 @@ Numbers are: 12!
 Numbers are: 12,76!
 ```
 
+## Root command
+The [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands) is executed if program invoked without any known commands on the command line. If no handler is assigned for the root command, the CLI will indicate that the required command is not provided and display the help message. To assign a handler method for the root command, use the `[RootCommand]` attribute. Its usage is similar to the `[Command]` attribute, except that you cannot specify a command name.
+
+The description for the root command essentially serves as the program description in the help output, as shown when program is invoked with the `--help` parameter. If the root command is not declared, SnapCLI will use the assembly description as the root command description.
+
+As mentioned earlier, if a program has only one command handler method declared with `[Command]` attribute and the command name is not explicitly specified in the `name` parameter of the attribute, SnapCLI will automatically set this command as root command.
+
+```csharp
+[RootCommand(description: "This command greets the world!")]
+static public void Hello()
+{
+    Console.WriteLine("Hello World!");
+}
+```
+
+Note: There can be only one method declared with `[RootCommand]` attribute.
+
 ## Subcommands
-As mentioned earlier, if command name has spaces (or name not specified and method name has underscores) it describes a [subcommand](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#subcommands). Any command may have multiple subcommands.
+Any command may have multiple subcommands. As mentioned earlier, if command name includes spaces or if the name is not specified and the method name contains underscores, it will describe a [subcommand](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#subcommands). 
 
 In the following example we have a subcommand `world` of the command `hello`:
 
@@ -202,7 +217,7 @@ static public void Hello()
 }
 ```
 
-Or equivalent using method name:
+Or equivalent using just method name:
 
 ```csharp
 [Command(description:"This command greets the world!")]
@@ -255,36 +270,25 @@ Options:
 Hello World!
 ```
 
-In example above we have description for `hello world` command, but not for `hello`. What if we don't need a handler for that command at all? In this case we may use `[assembly: ParentCommand()]` attribute at the top of the source file:
+## Commands without handlers
+In the output above we have description for the `hello world` command, but not for the `hello`. To describe the `hello` command without assigning a handler method you may use `[Command()]` attribute at the top of the class containing handler methods.
+
+Similarly, you can provide description for the root command (the first description in the output above) using `[RootCommand()]` attribute at the top of the containing class.
+
+With descriptions provided as shown in the following example, the help output will be complete.
 
 ```csharp
-[assembly: ParentCommand(name: "hello", description: "This command greets someone", aliases: ["hi"])]
-```
-
-In a similar way we may provide description to the root command, i.e. to the program itself, using `[assembly: Program()]` attribute:
-
-```csharp
-[assembly: Program(description: "This is sample program")]
-```
-
-Alternatively, we may use standard `[assembly: AssemblyDescription]` attribute:
-
-```csharp
-[assembly: AssemblyDescription(description: "This is sample program")]
-```
-
-## Root command
-When we have multiple commands in a CLI program and execute the program without parameters it will show help message. If instead of help we want to perform some actions, we need to assign a handler for the [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands). For that we use `[RootCommand]` attribute and it's usage is similar to one of `[Command]` except you cannot specify the command name.
-
-```csharp
-[RootCommand(description: "This command greets the world!")]
-static public void Hello()
+[RootCommand(description: "This is a sample program")] // or [assembly: AssemblyDescription(description: "This is sample program")]
+[Command(name: "hello", description: "This command greets someone", aliases: ["hi"])]
+class Sample
 {
-    Console.WriteLine("Hello World!");
+    [Command(description:"This command greets the world!")]
+    static public void hello_world() 
+    {
+        Console.WriteLine("Hello World!");
+    }
 }
 ```
-
-Note: There can be only one method declared with `[RootCommand]` attribute.
 
 ## Global options
 Any public static propety or field can be declared as global option with `[Option]` attribute.
