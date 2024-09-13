@@ -2,8 +2,8 @@
 
 // Example of simple CLI program 
 
-// this description will be shown on main help 
-[assembly:Program("Inventory database manager")]
+// this description will be shown on main (root command) help 
+[RootCommand("Inventory database manager")]
 
 internal class Program
 {

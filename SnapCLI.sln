@@ -16,7 +16,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{53C7A0
 		Directory.Build.props = Directory.Build.props
 		LICENSE-dotnet.md = LICENSE-dotnet.md
 		LICENSE.md = LICENSE.md
-		README.md = README.md
 	EndProjectSection
 EndProject
 Global

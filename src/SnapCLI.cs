@@ -6,16 +6,14 @@ namespace SnapCLI
 {
 
     /// <summary>
-    /// DescriptorAttribute is only used as base for other CLI attributes and should not be used by clients 
+    /// DescriptorAttribute is only used as base for other attributes and should not be used by clients 
     /// </summary>
-    [AttributeUsage(AttributeTargets.All)]
     public class DescriptorAttribute : Attribute
     {
 // don't generate XML documentation for internals of this class
 #pragma warning disable 1591
         public enum DescKind
         {
-            Program,
             RootCommand,
             Command,
             Argument,
@@ -179,16 +177,23 @@ namespace SnapCLI
     /// </code>
     /// </example>
     /// </summary>
-    /// <param name="description">Root command description, also serving as programs general description when help is shown.</param>
-    [AttributeUsage(AttributeTargets.Method)]
-    public class RootCommandAttribute(string? description = null)
-        : DescriptorAttribute(DescKind.RootCommand, description: description)  { }
+    [AttributeUsage(AttributeTargets.Method|AttributeTargets.Class)]
+    public class RootCommandAttribute : DescriptorAttribute  {
+        /// <summary>
+        /// Declares handler for <see cref="RootCommand"/>, i.e. command that executed when no subcommands are present on the command line. Only one method may be declared with this attribute.
+        /// </summary>
+        /// <param name="description">Root command description, also serving as programs general description when help is shown.</param>
+
+        public RootCommandAttribute(string? description = null) : base(DescKind.RootCommand, description: description)
+        {
+        }
+    }
 
     /// <summary>
     /// Declares handler for CLI <see cref="Command"/>. 
     /// <remarks>
     /// <para>Can be applied to any static public method</para>
-    /// <para>If program has only one method declared with <see cref="CommandAttribute"/> and command name not explicitly specified in <paramref name="name"/> parameter, this command is automatically treated as root command.</para>
+    /// <para>If program has only one method declared with <see cref="CommandAttribute"/> and command name not explicitly specified in <code>name</code> parameter, this command is automatically treated as root command.</para>
     /// </remarks>
     /// <example>
     /// <code>
@@ -201,7 +206,6 @@ namespace SnapCLI
     ///     
     /// </code></example>
     /// </summary>
-    /// <param name="name">Command name</param>
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>If name not specified and program has only one method declared with <see cref="CommandAttribute"/> and command name not explicitly specified in its <c>name</c> parameter, this command is automatically treated as <see cref="RootCommand"/>.</description></item>
@@ -210,63 +214,19 @@ namespace SnapCLI
     /// <item><description>If name specified and contains spaces, it describes subcommand - for example "list orders" is subcommand <b>orders</b> of <b>list</b> command.</description></item>
     /// </list>  
     /// </remarks>
-    /// <param name="aliases">Command aliases</param>
-    /// <param name="description">Command description</param>
-    /// <param name="hidden">Hidden commands are not shown in help but still can be used</param>
-    [AttributeUsage(AttributeTargets.Method)]
-    public class CommandAttribute(string? name = null, string[]? aliases = null, string? description = null, bool hidden = false)
-        : DescriptorAttribute(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden) { }
+    [AttributeUsage(AttributeTargets.Method|AttributeTargets.Class, AllowMultiple = true)]
+    public class CommandAttribute : DescriptorAttribute {
 
-    /// <summary>
-    /// Declares command without handler.
-    /// <remarks>
-    /// <para>This is global attribute that works at assembly level.</para>
-    /// <para>May be used to declare parent command that always expects subcommand to be invoked and has no it's own method handler.</para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// 
-    ///     [assembly: ParentCommand(name:"Hello",description:"This command always expects subcommand")]
-    ///     
-    /// </code>
-    /// </example>
-    /// </summary>
-    /// <param name="name">Command name</param>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>If name contains spaces, it describes subcommand - for example "list orders" is subcommand <b>orders</b> of <b>list</b> command.</description></item>
-    /// <item><description>If name not specified and program has multiple commands then method name is used as command name.</description></item>
-    /// <item><description>If method name is used and it contains underscore <c>_</c> char, it describes subcommand. For example, "list_orders()" method is subcommand <b>orders</b> of <b>list</b> command.</description></item>
-    /// </list>  
-    /// </remarks>
-    /// <param name="aliases">Command aliases</param>
-    /// <param name="description">Command description</param>
-    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    public class ParentCommandAttribute(string name, string description, string[]? aliases = null)
-    : DescriptorAttribute(DescKind.Command, name: name, aliases: aliases, description: description) { }
-
-    /// <summary>
-    /// Provides program description to me show on main help.
-    /// <remarks>
-    /// <para>If there is root command method declared with <see cref="RootCommandAttribute"/> then root command description will be shown on main help.</para>
-    /// <para>You may also use <see cref="AssemblyDescriptionAttribute"/> to provide program description</para>
-    /// <example>
-    /// <code>
-    /// 
-    ///     [assembly: Program("This is sample CLI program")]
-    /// 
-    /// </code>
-    /// </example>
-    /// </remarks>
-    /// </summary>
-    /// <param name="description">Program description</param>
-    [AttributeUsage(AttributeTargets.Assembly)]
-    public class ProgramAttribute(string description) : Attribute
-    {
         /// <summary>
-        /// Program description to me show on main help.
+        /// Declares handler for CLI <see cref="Command"/>. 
         /// </summary>
-        public string Description { get; } = description;
+        /// <param name="name">Command name</param>
+        /// <param name="aliases">Command aliases</param>
+        /// <param name="description">Command description</param>
+        /// <param name="hidden">Hidden commands are not shown in help but still can be used</param>
+        public CommandAttribute(string? name = null, string[]? aliases = null, string? description = null, bool hidden = false) : base(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden)
+        {
+        }
     }
 
     /// <summary>
@@ -342,17 +302,20 @@ namespace SnapCLI
                                  BindingFlags.Static |
                                  BindingFlags.Instance |
                                  BindingFlags.DeclaredOnly;
-            
-            var methods = GetCommandMethods(assembly, bindingFlags);
+
+            var globalDescriptors = GetGlobalDescriptors(assembly, bindingFlags);
+            var commandMethods = GetCommandMethods(assembly, bindingFlags);
+
+            if (commandMethods.Count == 0)
+                throw new InvalidOperationException("The CLI program must declare at least one method with [Command] or [RootCommand] attribute, see documentation https://github.com/mikepal2/snap-cli/blob/main/README.md");
 
             // create root command
 
-            CommandMethodDesc? rootMethod = GetRootCommandMethod(methods);
-            rootCommand = new(rootMethod?.Desc.Description ?? GetAssemblyDescription(assembly) ?? "");
+            rootCommand = CreateRootCommand(assembly, globalDescriptors, commandMethods, out var rootMethod);
 
-            // add parent commands described with [assembly:ParentCommand(...)] 
+            // add commands without handler methods, i.e. those declared with [Command] on class level
 
-            var parentCommands = assembly.GetCustomAttributes<ParentCommandAttribute>()
+            var parentCommands = globalDescriptors.Where(d => d.Kind == DescriptorAttribute.DescKind.Command)
                 .Select(desc => CreateAndAddCommand(rootCommand, desc.Name!, desc))
                 .ToArray();
 
@@ -367,9 +330,9 @@ namespace SnapCLI
                 .Select(x => (x.prop, x.desc!)))
             {
                 if (!prop.CanWrite)
-                    throw new InvalidOperationException($"Property {prop.Name} marked as [Option] must be writable");
+                    throw new InvalidOperationException($"Property {prop.Name} declared as [Option] must be writable");
                 if (!prop.SetMethod?.IsStatic == null)
-                    throw new InvalidOperationException($"Property {prop.Name} marked as [Option] must be static");
+                    throw new InvalidOperationException($"Property {prop.Name} declared as [Option] must be static");
                 var opt = CreateOption(desc, prop.Name, prop.PropertyType, () => prop.GetValue(null));
                 rootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => prop.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
@@ -382,9 +345,9 @@ namespace SnapCLI
                 .Select(x => (x.field, x.desc!)))
             {
                 if (field.IsInitOnly)
-                    throw new InvalidOperationException($"Field {field.Name} marked as [Option] must be writable");
+                    throw new InvalidOperationException($"Field {field.Name} declared as [Option] must be writable");
                 if (!field.IsStatic)
-                    throw new InvalidOperationException($"Field {field.Name} marked as [Option] must be static");
+                    throw new InvalidOperationException($"Field {field.Name} declared as [Option] must be static");
                 var opt = CreateOption(desc, field.Name, field.FieldType, () => field.GetValue(null));
                 rootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => field.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
@@ -397,7 +360,7 @@ namespace SnapCLI
             if (rootMethod != null)
                 AddCommandHandler(rootCommand, rootMethod.Method, globalOptionsInitializers);
 
-            foreach (var m in methods
+            foreach (var m in commandMethods
                 .Where(m => m.Desc.Kind == DescriptorAttribute.DescKind.Command && m != rootMethod)
                 .OrderBy(m => m.CommandName.Length)) // sort by name length to ensure parent commands created before subcommands
             {
@@ -414,48 +377,61 @@ namespace SnapCLI
             return rootCommand;
         }
 
+        // find [RootCommand] and [Command] attributes declared on class
+        private static List<DescriptorAttribute> GetGlobalDescriptors(Assembly assembly, BindingFlags bindingFlags)
+        {
+
+            return assembly.GetTypes().SelectMany(t => t.GetCustomAttributes<DescriptorAttribute>()).ToList();
+        }
+
+        // find methods declared with [RootCommand] or [Command] attributes
         private static List<CommandMethodDesc> GetCommandMethods(Assembly assembly, BindingFlags bindingFlags)
         {
-            // find method tagged with RootCommand or Command attributes
-
             return assembly.GetTypes()
                                   .SelectMany(t => t.GetMethods(bindingFlags))
-                                  .Select(m => new { method = m, desc = m.GetCustomAttribute<DescriptorAttribute>() })
+                                  .Select(m =>
+                                  {
+                                      if (m.GetCustomAttributes<DescriptorAttribute>().Count() > 1)
+                                          throw new InvalidOperationException($"Method {m.Name} has multiple [Command] attributes declared");
+                                      return new { method = m, desc = m.GetCustomAttribute<DescriptorAttribute>() };
+                                  })
                                   .Where(m => m.desc != null)
                                   .Select(m => new CommandMethodDesc(m.method, m.desc!))
                                   .ToList();
         }
 
-        private static CommandMethodDesc? GetRootCommandMethod(List<CommandMethodDesc> methods)
+        private static RootCommand CreateRootCommand(Assembly assembly, List<DescriptorAttribute> globalDescriptors, List<CommandMethodDesc> commandMethods, out CommandMethodDesc? rootMethod)
         {
-            CommandMethodDesc? rootMethod = null;
+            var globalRootDescriptors = globalDescriptors.Where(d => d.Kind == DescriptorAttribute.DescKind.RootCommand).ToList();
+            var rootMethods = commandMethods.Where(m => m.Desc.Kind == DescriptorAttribute.DescKind.RootCommand).ToList();
+            var rootDescriptorsCount = globalRootDescriptors.Count + rootMethods.Count;
 
-            // TODO: add documentation link
-            if (methods.Count == 0)
-                throw new InvalidOperationException("Cannot find methods with [Command] attribute, see documentation");
+            rootMethod = null;
+            DescriptorAttribute? rootDescriptor = null;
 
-            // if we have only one method not named explicitly - use it as root
-            if (methods.Count == 1 && string.IsNullOrEmpty(methods[0].Desc.Name))
-                return methods[0];
+            if (rootDescriptorsCount > 1)
+                throw new InvalidOperationException($"Only one [RootCommand] attribute may be declared, found {rootDescriptorsCount}");
 
-            foreach (var m in methods.Where(m => m.Desc.Kind == DescriptorAttribute.DescKind.RootCommand))
-            {
-                if (rootMethod != null)
-                    throw new InvalidOperationException("Only one method can be marked as [RootCommand]");
-                rootMethod = m;
-            }
+            if (globalRootDescriptors.Any())
+                rootDescriptor = globalDescriptors.First();
+            else if (rootMethods.Any())
+                rootMethod = rootMethods.First();
+            else if (commandMethods.Count == 1 && string.IsNullOrEmpty(commandMethods.First().Desc.Name))
+                rootMethod = commandMethods.First();
 
-            return rootMethod;
-        }
+            var rootCommandDescription = rootMethod?.Desc.Description ??
+                rootDescriptor?.Description ??
+                assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description ??
+                "";
 
-        private static string? GetAssemblyDescription(Assembly assembly)
-        {
-            return assembly.GetCustomAttribute<ProgramAttribute>()?.Description ??
-                   assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description;
+            return new RootCommand(rootCommandDescription);
         }
 
         private static Command CreateAndAddCommand(RootCommand rootCommand, string name, DescriptorAttribute desc)
         {
+            if (desc.Kind != DescriptorAttribute.DescKind.Command)
+                throw new InvalidOperationException($"Unexpected descriptor type {desc.Kind} for the command");
+
             var subcommandNames = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             Command parentCommand = rootCommand;
             Command? command = null;
@@ -483,20 +459,20 @@ namespace SnapCLI
             return command;
         }
 
-        private static Type[] SupportedReturnTypes = [typeof(void), typeof(int), typeof(Task<int>), typeof(Task), typeof(ValueTask<int>), typeof(ValueTask)];
+        private static readonly Type[] SupportedReturnTypes = new[] { typeof(void), typeof(int), typeof(Task<int>), typeof(Task), typeof(ValueTask<int>), typeof(ValueTask) };
         private static void AddCommandHandler(Command command, MethodInfo method, Action<InvocationContext>[] globalOptionsInitializers)
         {
             if (command.Handler != null)
                 throw new InvalidOperationException($"Command '{command.Name}' has multiple handler methods");
 
             if (!method.IsStatic)
-                throw new InvalidOperationException($"Method {method.Name} marked as [Command] must be static");
+                throw new InvalidOperationException($"Method {method.Name} declared as [Command] must be static");
 
             // FIXME: generic type name is shown as Task`1 instead of Task<int>
             if (!SupportedReturnTypes.Any(t => t.IsAssignableFrom(method.ReturnType)))
                 throw new InvalidOperationException($"Method {method.Name} should return any of {string.Join(",", SupportedReturnTypes.Select(t => t.Name))}");
 
-            List<Symbol> paramInfo = [];
+            var paramInfo = new List<Symbol>();
 
             foreach (var param in method.GetParameters())
             {
@@ -576,10 +552,10 @@ namespace SnapCLI
 
         private static Option CreateOption(DescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
         {
-            var genericType = typeof(Option<>).MakeGenericType([valueType]);
+            var genericType = typeof(Option<>).MakeGenericType(new[] { valueType });
             var name = info.Name ?? memberName ?? throw new NotSupportedException($"Option name cannot be deduced from parameter [{info}], specify name explicitly");
             name = AddPrefix(name);
-            Option instance = (Option)Activator.CreateInstance(genericType, [name, info.Description])!;
+            Option instance = (Option)Activator.CreateInstance(genericType, new[] { name, info.Description })!;
             if (info.Arity.HasValue)
                 instance.Arity = info.Arity.Value;
             if (info.HelpName != null)
@@ -605,9 +581,9 @@ namespace SnapCLI
 
         private static Argument CreateArgument(DescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
         {
-            var genericType = typeof(Argument<>).MakeGenericType([valueType]);
+            var genericType = typeof(Argument<>).MakeGenericType(new[] { valueType });
             var name = info.Name ?? memberName ?? throw new NotSupportedException($"Argument name cannot be deduced from parameter [{info}], specify name explicitly");
-            Argument instance = (Argument)Activator.CreateInstance(genericType, [name, info.Description])!;
+            Argument instance = (Argument)Activator.CreateInstance(genericType, new[] { name, info.Description })!;
             if (info.Arity.HasValue)
                 instance.Arity = info.Arity.Value;
             if (info.HelpName != null)
