@@ -1,6 +1,10 @@
-﻿using System.CommandLine;
+﻿using System;
+using System.Collections.Generic;
+using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace SnapCLI
 {
@@ -240,7 +244,7 @@ namespace SnapCLI
         /// <param name="args">Command line arguments passed from Main()</param>
         /// <param name="console">Optional <see cref="IConsole"></see> interface to pass to the commands.</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null, IConsole? console = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs()[1..], console);
+        public static int Run(string[]? args = null, IConsole? console = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), console);
 
         /// <summary>
         /// Helper asynchronous method to run CLI application. Should be called from program async Main() entry point.
@@ -248,7 +252,7 @@ namespace SnapCLI
         /// <param name="args">Command line arguments passed from Main()</param>
         /// <param name="console">Optional <see cref="IConsole"></see> interface to pass to the commands.</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null, IConsole? console = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs()[1..], console);
+        public static async Task<int> RunAsync(string[]? args = null, IConsole? console = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), console);
 
         /// <summary>
         /// Provides access to commands hierarchy and their options and arguments.
@@ -432,7 +436,7 @@ namespace SnapCLI
             if (desc.Kind != DescriptorAttribute.DescKind.Command)
                 throw new InvalidOperationException($"Unexpected descriptor type {desc.Kind} for the command");
 
-            var subcommandNames = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var subcommandNames = name.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             Command parentCommand = rootCommand;
             Command? command = null;
             bool created = false;
@@ -459,7 +463,11 @@ namespace SnapCLI
             return command;
         }
 
-        private static readonly Type[] SupportedReturnTypes = new[] { typeof(void), typeof(int), typeof(Task<int>), typeof(Task), typeof(ValueTask<int>), typeof(ValueTask) };
+        private static readonly Type[] SupportedReturnTypes = new[] { typeof(void), typeof(int), typeof(Task<int>), typeof(Task)
+#if NETCOREAPP2_0_OR_GREATER
+            , typeof(ValueTask<int>), typeof(ValueTask)
+#endif
+        };
         private static void AddCommandHandler(Command command, MethodInfo method, Action<InvocationContext>[] globalOptionsInitializers)
         {
             if (command.Handler != null)
@@ -477,15 +485,18 @@ namespace SnapCLI
             foreach (var param in method.GetParameters())
             {
                 var info = param.GetCustomAttribute<DescriptorAttribute>() ?? new OptionAttribute();
+                Func<object?>? getDefaultValue = null;
+                if (param.HasDefaultValue && param.DefaultValue != null)
+                    getDefaultValue = () => param.DefaultValue;
                 switch (info.Kind)
                 {
                     case DescriptorAttribute.DescKind.Option:
-                        var option = CreateOption(info, param.Name, param.ParameterType, param.HasDefaultValue && param.DefaultValue != null ? () => param.DefaultValue : null);
+                        var option = CreateOption(info, param.Name, param.ParameterType, getDefaultValue);
                         command.AddOption(option);
                         paramInfo.Add(option);
                         break;
                     case DescriptorAttribute.DescKind.Argument:
-                        var argument = CreateArgument(info, param.Name, param.ParameterType, param.HasDefaultValue && param.DefaultValue != null ? () => param.DefaultValue : null);
+                        var argument = CreateArgument(info, param.Name, param.ParameterType, getDefaultValue);
                         command.AddArgument(argument);
                         paramInfo.Add(argument);
                         break;
@@ -532,6 +543,7 @@ namespace SnapCLI
                             await t;
                             ctx.ExitCode = 0;
                             break;
+#if NETCOREAPP2_0_OR_GREATER
                         case ValueTask<int> t:
                             ctx.ExitCode = await t;
                             break;
@@ -539,6 +551,7 @@ namespace SnapCLI
                             await t;
                             ctx.ExitCode = 0;
                             break;
+#endif
                         case int i:
                             ctx.ExitCode = i;
                             break;
@@ -571,7 +584,7 @@ namespace SnapCLI
 
             static string AddPrefix(string name)
             {
-                if (name.StartsWith('-'))
+                if (name.StartsWith("-"))
                     return name;
                 if (name.Length == 1)
                     return "-" + name;
