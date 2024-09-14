@@ -13,7 +13,9 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
 		<PackageTags>Snap CLI Command Line Interface CommandLine Simple Easy</PackageTags>
-		<PackageReleaseNotes>Updated nuget metadata</PackageReleaseNotes>
+		<PackageReleaseNotes>- Simplified API. 
+- Updated supported frameworks to match those of System.CommandLine.
+- Updated documentation.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
