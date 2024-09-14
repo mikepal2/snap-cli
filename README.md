@@ -84,7 +84,7 @@ Required options must be specified on the command line; otherwise, the program w
 
 **Option name convention**
 - If option name is not explicitly specified in the attribute, or attribute is ommitted, the  name of the parameter will be implicitly used.
-- The option name automatically prepended with one dash `-` (if name consists of a single letter) or two dashes `--`, unless it is already starting with dash.
+- The option name is automatically prepended with a single dash (`-`) if it consists of a single letter, or with two dashes (`--`) if it is longer, unless it already starts with a dash.
 
 **What do we have so far?**
 
