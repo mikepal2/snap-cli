@@ -80,7 +80,7 @@ static public void Hello(
 }
 ```
 
-Required options must be specified on the command line; otherwise, the program will show an error and display the command help. Method parameters that have default values (as in the examples above) are, by default, translated into options that are not reuired, while those without default values are always translated into required options.
+Required options must be specified on the command line; otherwise, the program will show an error and display the command help. Method parameters that have default values (as in the examples above) are, by default, translated into options that are not required, while those without default values are always translated into required options.
 
 **Option name convention**
 - If option name is not explicitly specified in the attribute, or attribute is ommitted, the  name of the parameter will be implicitly used.
