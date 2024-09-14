@@ -125,7 +125,7 @@ Hello Michael!
 ## Arguments
 An [argument](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#arguments) is a value passed to an option or command without specifying an option name; it is also referred to as a positional argument.
 
-You can declare that parameter is argument with an `[Argument]` attribute. Lets change our example a little bit:
+You can declare that parameter is argument with an `[Argument]` attribute. Lets change `Option` to `Argument` in our example:
 
 ```csharp
 [Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
@@ -160,7 +160,7 @@ Hello Michael!
 
 **Argument name convention**
 - Argument name is used only for help, it cannot be specified on command line.
-- If argument name is not explicitly specified in the attribute, or attribute is ommitted, the  name of the parameter will be implicitly used.
+- If argument name is not explicitly specified in the attribute, the  name of the parameter will be implicitly used.
 
 You can provide options before arguments or arguments before options on the command line. See [documentation](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#order-of-options-and-arguments) for details.
 
