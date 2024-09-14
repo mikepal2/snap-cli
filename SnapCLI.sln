@@ -14,7 +14,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{53C7A07E-A5DA-416D-A247-E38A8F35ADF7}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
-		LICENSE-dotnet.md = LICENSE-dotnet.md
+		LICENSE-command-line-api.md = LICENSE-command-line-api.md
 		LICENSE.md = LICENSE.md
 	EndProjectSection
 EndProject
