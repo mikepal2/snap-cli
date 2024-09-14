@@ -304,8 +304,8 @@ Both commands and options may have [aliases](https://learn.microsoft.com/en-us/d
 ## Case sensitivity
 Command and option names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
-# .Net support
-Currently implemeted for .Net 8.0 with plans to support for .Net Standard
+# .Net framework support
+Supported frameworks can be found on the [SnapCLI NuGet page](https://www.nuget.org/packages/SnapCLI#supportedframeworks-body-tab). The goal is to maintain the same level of support as the System.CommandLine library.
 
 # License
 This project is licensed under the [MIT license](LICENSE.md).
