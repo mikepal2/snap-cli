@@ -207,6 +207,19 @@ Numbers are: 12!
 Numbers are: 12,76!
 ```
 
+## Global options
+Any public static propety or field can be declared as global option with `[Option]` attribute.
+
+```csharp
+class Sample
+{
+    [Option(name:"config", description:"Configuration file name", aliases: ["c","cfg"])]
+    public static string ConfigFile = "config.ini";
+
+    ...
+}
+```
+
 ## Root command
 The [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands) is executed if program invoked without any known commands on the command line. If no handler is assigned for the root command, the CLI will indicate that the required command is not provided and display the help message. To assign a handler method for the root command, use the `[RootCommand]` attribute. Its usage is similar to the `[Command]` attribute, except that you cannot specify a command name. There can be only one method declared with `[RootCommand]` attribute.
 
@@ -305,19 +318,6 @@ class Sample
     {
         Console.WriteLine("Hello World!");
     }
-}
-```
-
-## Global options
-Any public static propety or field can be declared as global option with `[Option]` attribute.
-
-```csharp
-class Sample
-{
-    [Option(name:"config", description:"Configuration file name", aliases: ["c","cfg"])]
-    public static string ConfigFile = "config.ini";
-
-    ...
 }
 ```
 
