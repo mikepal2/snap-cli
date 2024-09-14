@@ -1,26 +1,26 @@
 The **SnapCLI** library provides a simple Command Line Interface (CLI) API. 
-It is built on top of [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library.
+It is built on top of the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library.
 
 # NuGet package
 The library is available in a NuGet package:
 - [SnapCLI](https://www.nuget.org/packages/SnapCLI/)
 
 # Motivation
- The goal of this project is to provide a simple and effective way to handle command-line commands and parameters, allowing developers to create POSIX-like CLI applications with minimal hassle in parsing the command line and enabling them to focus on application logic. Additionally, it facilitates providing all necessary information for the application's help system, making it easily accessible to end users. The [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) project was a step in this direction, but is very limited in abilities it provides.
+ The goal of this project is to provide a simple and effective way to handle command-line commands and parameters, allowing developers to create POSIX-like CLI applications with minimal hassle in parsing the command line and enabling them to focus on application logic. Additionally, it facilitates providing all necessary information for the application's help system, making it easily accessible to end users. The [DragonFruit](https://github.com/dotnet/command-line-api/blob/main/docs/DragonFruit-overview.md) project was a step in this direction, but is very limited in abilities it provides.
 
 # API Paradigm
 The API paradigm of this project is to use [attributes](https://learn.microsoft.com/en-us/dotnet/csharp/advanced-topics/reflection-and-attributes/) to declare and describe CLI commands, options, and arguments.
 
-Any public static method can be declared as a CLI command handler using the `[Command]` attribute, and effectively represent an entry point to the CLI application for that command. Any parameter of command handler method automatically becomes a command option. See examples below for details.
+Any public static method can be declared as a CLI command handler using the `[Command]` attribute, and effectively represent an entry point to the CLI application for that command. Any parameter of command handler method automatically becomes a command option. See the [usage](#usage) section and examples below for more details.
 
-**Where are the classes?**
+## Main method  
+Normally, the `Main` method is the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. This means that if you include your own `Main` function in the program, it will **not** be invoked.
 
-There are multiple CLI frameworks that require separate class implementation for each command. In my opinion, creating a per-command classes adds unnecessary bloat to the code with little to no benefit. To provide additional information such as descriptions and aliases, attributes are anyway required on top of the class declaration. Since the goal is to simplify things as much as possible, I decided not to use classes at all in my approach.
+## What about classes?
+There are multiple CLI frameworks that require separate class implementation for each command. In my opinion, creating a per-command classes adds unnecessary bloat to the code with little to no benefit. To provide additional information such as descriptions and aliases, attributes are anyway required on top of the class declaration. Since the goal is to simplify things as much as possible, I decided not to use classes at all in my approach. While this approach may not be as flexible as some other solutions, it meets the basic needs of most CLI applications. 
 
-While this approach may not be as flexible as some other solutions, it meets the basic needs of most CLI applications. Ultimately, the goal is simplicity.
-
-# Command line syntax
-Since this project is based on the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library, the parsing rules are exactly the same as those for that package. The Microsoft documentation provides detailed explanations of the [command-line syntax](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) recognized by `System.CommandLine`. We will include more links to this documentation throughout the text below.
+## Command line syntax
+Since this project is based on the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library, the parsing rules are exactly the same as those for that package. The Microsoft documentation provides detailed explanations of the [command-line syntax](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) recognized by `System.CommandLine`. I will include more links to this documentation throughout the text below.
 
 # Usage
 
@@ -31,7 +31,7 @@ Any public static method can be declared as a CLI command handler using the `[Co
 
 ```csharp
 [Command]
-static public void Hello() 
+public static void Hello() 
 {
     Console.WriteLine("Hello World!");
 }
@@ -41,7 +41,7 @@ Additional information can be provided in attribute parameters to enhance comman
 
 ```csharp
 [Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
-static public void Hello() 
+public static void Hello() 
 {
     Console.WriteLine("Hello World!");
 }
@@ -54,7 +54,7 @@ The library supports handler methods with the following return types: `void`, `i
 
 ```csharp
 [Command(name:"sleep", description:"Sleep example")]
-static public async Task<int> Sleep(int milliseconds = 1000)
+public static async Task<int> Sleep(int milliseconds = 1000)
 {
     Console.WriteLine("Sleeping...");
     await Task.Delay(milliseconds);
@@ -68,6 +68,8 @@ static public async Task<int> Sleep(int milliseconds = 1000)
 - If the `[Command]` attribute does not specify a command name:
   - If this is the only command in the program, it is automatically treated as the [root command](#root-command). Otherwise, the method name, converted to lower case, is used as the command name. For example, the method `Hello()` will handle the `hello` command. If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under the `list` command.
 - If the name specified in the [Command] attribute explicitly contains spaces, it declares a subcommand. For example, `name:"list orders"` defines `orders` as a subcommand of the `list` command.
+- Commands may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases). These are usually short forms that are easier to type or alternate spellings of a word.
+- Command names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
 ## Options
 An [option](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#options) is a named parameter that can be passed to a command.
@@ -76,17 +78,17 @@ Any parameter of command handler method automatically becomes a command option. 
 
 ```csharp
 [Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
-static public void Hello(string name = "World") 
+public static void Hello(string name = "World") 
 {
     Console.WriteLine($"Hello {name}!");
 }
 ```
 
-Of course we can provide additional information about option with attribute `[Options]` such as explicit name, aliases, description, and whatever option is required.
+Of course we can provide additional information about option with `[Option]` attribute such as explicit name, aliases, description, and whatever option is required.
 
 ```csharp
 [Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
-static public void Hello(
+public static void Hello(
     [Option(name:"name", description:"The name we should use for the greeting")]
     string name = "World"
 ) 
@@ -95,11 +97,15 @@ static public void Hello(
 }
 ```
 
-Required options must be specified on the command line; otherwise, the program will show an error and display the command help. Method parameters that have default values (as in the examples above) are, by default, translated into options that are not required, while those without default values are always translated into required options.
+**Required options**
+
+Required options must be specified on the command line; otherwise, the program will show an error and display the command help. Method parameters that have default values (as in the examples above) are, by default, translated into options that are not required, while those without default values are always translated into required options. You may force option to be required using `required` parameter of the attribute.
 
 **Option name convention**
 - If option name is not explicitly specified in the attribute, or attribute is ommitted, the  name of the parameter will be implicitly used.
 - The option name is automatically prepended with a single dash (`-`) if it consists of a single letter, or with two dashes (`--`) if it is longer, unless it already starts with a dash.
+- Options may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases). These are usually short forms that are easier to type or alternate spellings of a word.
+- Option names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
 **What do we have so far?**
 
@@ -129,7 +135,7 @@ You can declare that parameter is argument with an `[Argument]` attribute. Lets 
 
 ```csharp
 [Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
-static public void Hello(
+public static void Hello(
     [Argument(name:"name", description:"The name we should use for the greeting")]
     string name = "World"
 ) 
@@ -164,13 +170,12 @@ Hello Michael!
 
 You can provide options before arguments or arguments before options on the command line. See [documentation](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#order-of-options-and-arguments) for details.
 
-
 ## Arity
 The [arity](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#argument-arity) of an option or command's argument is the number of values that can be passed if that option or command is specified. Arity is expressed with a minimum value and a maximum value.
 
 ```csharp
 [Command(name: "print", description: "Arity example")]
-static public void Print(
+public static void Print(
     [Argument(arityMin:1, arityMax:2, name:"numbers", description:"Takes 1 or 2 numbers")]
     int[] nums
 )
@@ -203,7 +208,7 @@ Numbers are: 12,76!
 ```
 
 ## Root command
-The [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands) is executed if program invoked without any known commands on the command line. If no handler is assigned for the root command, the CLI will indicate that the required command is not provided and display the help message. To assign a handler method for the root command, use the `[RootCommand]` attribute. Its usage is similar to the `[Command]` attribute, except that you cannot specify a command name.
+The [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands) is executed if program invoked without any known commands on the command line. If no handler is assigned for the root command, the CLI will indicate that the required command is not provided and display the help message. To assign a handler method for the root command, use the `[RootCommand]` attribute. Its usage is similar to the `[Command]` attribute, except that you cannot specify a command name. There can be only one method declared with `[RootCommand]` attribute.
 
 The description for the root command essentially serves as the program description in the help output, as shown when program is invoked with the `--help` parameter. If the root command is not declared, SnapCLI will use the assembly description as the root command description.
 
@@ -211,13 +216,11 @@ As mentioned earlier, if a program has only one command handler method declared 
 
 ```csharp
 [RootCommand(description: "This command greets the world!")]
-static public void Hello()
+public static void Hello()
 {
     Console.WriteLine("Hello World!");
 }
 ```
-
-Note: There can be only one method declared with `[RootCommand]` attribute.
 
 ## Subcommands
 Any command may have multiple subcommands. As mentioned earlier, if command name includes spaces or if the name is not specified and the method name contains underscores, it will describe a [subcommand](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#subcommands). 
@@ -226,7 +229,7 @@ In the following example we have a subcommand `world` of the command `hello`:
 
 ```csharp
 [Command(name:"hello world", description:"This command greets the world!")]
-static public void Hello() 
+public static void Hello() 
 {
     Console.WriteLine("Hello World!");
 }
@@ -236,7 +239,7 @@ Or equivalent using just method name:
 
 ```csharp
 [Command(description:"This command greets the world!")]
-static public void hello_world() 
+public static void hello_world() 
 {
     Console.WriteLine("Hello World!");
 }
@@ -298,7 +301,7 @@ With descriptions provided as shown in the following example, the help output wi
 class Sample
 {
     [Command(description:"This command greets the world!")]
-    static public void hello_world() 
+    public static void hello_world() 
     {
         Console.WriteLine("Hello World!");
     }
@@ -309,15 +312,14 @@ class Sample
 Any public static propety or field can be declared as global option with `[Option]` attribute.
 
 ```csharp
-[Option(name:"config", description:"Configuration file name", aliases: ["c","cfg"])]
-public static string ConfigFile = "config.ini";
+class Sample
+{
+    [Option(name:"config", description:"Configuration file name", aliases: ["c","cfg"])]
+    public static string ConfigFile = "config.ini";
+
+    ...
+}
 ```
-
-## Aliases
-Both commands and options may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases).
-
-## Case sensitivity
-Command and option names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
 # .Net framework support
 Supported frameworks can be found on the [SnapCLI NuGet page](https://www.nuget.org/packages/SnapCLI#supportedframeworks-body-tab). The goal is to maintain the same level of support as the System.CommandLine library.
