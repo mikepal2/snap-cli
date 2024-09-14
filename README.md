@@ -47,12 +47,27 @@ static public void Hello()
 }
 ```
 
-##### Command name convention
+Async handler methods are supported. 
 
-- If a program has only one command handler method declared with `[Command]` attribute and the command name is not explicitly specified in the `name` parameter of the attribute, this command is automatically treated as [root command](#root-command)).
-- If the command name not specified in the attribute then the method name, converted to lower case, is implicitly used as the command name. For example method `Hello()` will handle `Hello` command.
-- If method name is used implicitly and contains an underscore (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under `list` command.
-- If name is specified explicitly and contains spaces, it declares a subcommand. For example, `name:"list orders"` declares `orders` as a subcommand of the `list` command.
+The library supports handler methods with the following return types: `void`, `int`, `Task<int>`, `Task`, `ValueTask<int>`, and `ValueTask`. The result from handlers returning `int`, `Task<int>`, and `ValueTask<int>` is used as the program's exit code.
+
+
+```csharp
+[Command(name:"sleep", description:"Sleep example")]
+static public async Task<int> Sleep(int milliseconds = 1000)
+{
+    Console.WriteLine("Sleeping...");
+    await Task.Delay(milliseconds);
+    Console.WriteLine("OK");
+    return 0; // exit code
+}
+```
+
+**Command name convention**
+
+- If the `[Command]` attribute does not specify a command name:
+  - If this is the only command in the program, it is automatically treated as the [root command](#root-command). Otherwise, the method name, converted to lower case, is used as the command name. For example, the method `Hello()` will handle the `hello` command. If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under the `list` command.
+- If the name specified in the [Command] attribute explicitly contains spaces, it declares a subcommand. For example, `name:"list orders"` defines `orders` as a subcommand of the `list` command.
 
 ## Options
 An [option](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#options) is a named parameter that can be passed to a command.
