@@ -14,10 +14,12 @@
 		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
 		<PackageTags>Snap CLI Command Line Interface CommandLine Simple Easy</PackageTags>
 		<PackageReleaseNotes>Updated documentation</PackageReleaseNotes>
+		<UserSecretsId>13b1e0d3-289f-4aad-8acb-32a272b1be5a</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.24324.3" />
 	</ItemGroup>
 
 	<ItemGroup>

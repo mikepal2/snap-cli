@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SnapCLI": {
+      "commandName": "Project",
+      "commandLineArgs": "hello World"
+    }
+  }
+}
