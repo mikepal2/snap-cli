@@ -242,17 +242,15 @@ namespace SnapCLI
         /// Helper method to run CLI application. Should be called from program Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
-        /// <param name="console">Optional <see cref="IConsole"></see> interface to pass to the commands.</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null, IConsole? console = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), console);
+        public static int Run(string[]? args = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
 
         /// <summary>
         /// Helper asynchronous method to run CLI application. Should be called from program async Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
-        /// <param name="console">Optional <see cref="IConsole"></see> interface to pass to the commands.</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null, IConsole? console = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), console);
+        public static async Task<int> RunAsync(string[]? args = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
 
         /// <summary>
         /// Provides access to commands hierarchy and their options and arguments.
