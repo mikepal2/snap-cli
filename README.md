@@ -66,8 +66,10 @@ public static async Task<int> Sleep(int milliseconds = 1000)
 **Command name convention**
 
 - If the `[Command]` attribute does not specify a command name:
-  - If this is the only command in the program, it is automatically treated as the [root command](#root-command). Otherwise, the method name, converted to lower case, is used as the command name. For example, the method `Hello()` will handle the `hello` command. If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under the `list` command.
-- If the name specified in the [Command] attribute explicitly contains spaces, it declares a subcommand. For example, `name:"list orders"` defines `orders` as a subcommand of the `list` command.
+  - If this is the only command in the program, it is automatically treated as the [root command](#root-command).
+  - if there are multiple commands declared, the method name, converted to lower case, is used as the command name. For example, the method `Hello()` will handle the `hello` command.
+  - If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under the `list` command.
+- If the name specified in the [Command] attribute explicitly contains spaces, it declares a [subcommand](#subcommands). For example, `name:"list orders"` defines `orders` as a subcommand of the `list` command.
 - Commands may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases). These are usually short forms that are easier to type or alternate spellings of a word.
 - Command names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
