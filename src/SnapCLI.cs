@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -295,9 +296,10 @@ namespace SnapCLI
         public static RootCommand BuildCommands()
         {
             if (rootCommand != null)
-                throw new InvalidOperationException("BuildCommands() was already invoked and commands hierarchy built");
+                return rootCommand; // BuildCommands() was already invoked and commands hierarchy built
 
-            Assembly assembly = (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
+            Assembly executingAssembly = Assembly.GetExecutingAssembly();
+            Assembly assembly = Assembly.GetEntryAssembly() ?? executingAssembly;
 
             BindingFlags bindingFlags = BindingFlags.Public |
                                  BindingFlags.NonPublic |
@@ -307,6 +309,15 @@ namespace SnapCLI
 
             var globalDescriptors = GetGlobalDescriptors(assembly, bindingFlags);
             var commandMethods = GetCommandMethods(assembly, bindingFlags);
+
+            // test project calling CLI.Run() directly and it's commands are in calling assembly
+
+            if (commandMethods.Count == 0)
+            {
+                var callingAssembly = new StackTrace(1, false).GetFrames().Select(f => f.GetMethod()?.Module?.Assembly).FirstOrDefault(a => a != null && a != executingAssembly);
+                if (callingAssembly != null)
+                    commandMethods = GetCommandMethods(callingAssembly, bindingFlags);
+            }
 
             if (commandMethods.Count == 0)
                 throw new InvalidOperationException("The CLI program must declare at least one method with [Command] or [RootCommand] attribute, see documentation https://github.com/mikepal2/snap-cli/blob/main/README.md");
@@ -575,9 +586,10 @@ namespace SnapCLI
             if (info.Aliases != null)
                 foreach (var alias in info.Aliases)
                     instance.AddAlias(AddPrefix(alias));
-            instance.IsRequired = info.IsRequired;
-            if (getDefaultValue != null && instance.IsRequired == false)
+            if (info.IsRequired == false && getDefaultValue != null)
                 instance.SetDefaultValueFactory(getDefaultValue);
+            else
+                instance.IsRequired = true;
             return instance;
 
             static string AddPrefix(string name)
