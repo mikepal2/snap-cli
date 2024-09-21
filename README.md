@@ -209,12 +209,22 @@ Numbers are: 12,76!
 
 ## Global options
 Any public static propety or field can be declared as global option with `[Option]` attribute.
+Global options are not required by default because properties and fields always have default values, either implicitly or explicitly. You can make a global option required by using the `required` parameter of the attribute.
 
 ```csharp
 class Sample
 {
+    // This global option is not required and have explicit default value of "config.ini"
     [Option(name:"config", description:"Configuration file name", aliases: ["c","cfg"])]
     public static string ConfigFile = "config.ini";
+
+    // This global option is not required and have implicit default value of (null)
+    [Option(name:"profile", description:"User profile")]
+    public static string Profile;
+
+    // This global option is always required
+    [Option(name:"user", description:"User name", required:true)]
+    public static string User;
 
     ...
 }
