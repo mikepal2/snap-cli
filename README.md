@@ -66,8 +66,10 @@ public static async Task<int> Sleep(int milliseconds = 1000)
 **Command name convention**
 
 - If the `[Command]` attribute does not specify a command name:
-  - If this is the only command in the program, it is automatically treated as the [root command](#root-command). Otherwise, the method name, converted to lower case, is used as the command name. For example, the method `Hello()` will handle the `hello` command. If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under the `list` command.
-- If the name specified in the [Command] attribute explicitly contains spaces, it declares a subcommand. For example, `name:"list orders"` defines `orders` as a subcommand of the `list` command.
+  - If this is the only command in the program, it is automatically treated as the [root command](#root-command).
+  - if there are multiple commands declared, the method name, converted to lower case, is used as the command name. For example, the method `Hello()` will handle the `hello` command.
+  - If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under the `list` command.
+- If the name specified in the [Command] attribute explicitly contains spaces, it declares a [subcommand](#subcommands). For example, `name:"list orders"` defines `orders` as a subcommand of the `list` command.
 - Commands may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases). These are usually short forms that are easier to type or alternate spellings of a word.
 - Command names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
@@ -209,12 +211,22 @@ Numbers are: 12,76!
 
 ## Global options
 Any public static propety or field can be declared as global option with `[Option]` attribute.
+Global options are not required by default because properties and fields always have default values, either implicitly or explicitly. You can make a global option required by using the `required` parameter of the attribute.
 
 ```csharp
 class Sample
 {
+    // This global option is not required and have explicit default value of "config.ini"
     [Option(name:"config", description:"Configuration file name", aliases: ["c","cfg"])]
     public static string ConfigFile = "config.ini";
+
+    // This global option is not required and have implicit default value of (null)
+    [Option(name:"profile", description:"User profile")]
+    public static string Profile;
+
+    // This global option is always required
+    [Option(name:"user", description:"User name", required:true)]
+    public static string User;
 
     ...
 }
