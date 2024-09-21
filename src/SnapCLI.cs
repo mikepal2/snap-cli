@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -249,15 +250,19 @@ namespace SnapCLI
         /// Helper method to run CLI application. Should be called from program Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
+        /// <param name="output">Redirect output stream</param>
+        /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => BuildCommands(output, error).Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
 
         /// <summary>
         /// Helper asynchronous method to run CLI application. Should be called from program async Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
+        /// <param name="output">Redirect output stream</param>
+        /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => await BuildCommands(output, error).InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
 
         /// <summary>
         /// Provides access to commands hierarchy and their options and arguments.
@@ -295,7 +300,7 @@ namespace SnapCLI
         /// </summary>
         /// <returns>Returns <see cref="RootCommand"></see></returns>
         /// <exception cref="InvalidOperationException">Commands hierarchy already built or there are attributes usage errors detected.</exception>
-        public static Configuration BuildCommands()
+        public static Configuration BuildCommands(TextWriter? output, TextWriter? error)
         {
             if (_configuration != null)
                 return _configuration; // BuildCommands() was already invoked and commands hierarchy built
@@ -395,6 +400,10 @@ namespace SnapCLI
                     throw new InvalidOperationException($"Command '{command.Name}' has no subcommands nor handler methods");
 
             _configuration = new Configuration(rootCommand);
+            if (output != null)
+                _configuration.Output = output;
+            if (error != null) 
+                _configuration.Error = error;
 
             return _configuration;
         }
@@ -602,14 +611,14 @@ namespace SnapCLI
 
         private static Argument CreateArgument(DescriptorAttribute info, ParameterInfo parameterInfo)
         {
-            if (info.Name is null && parameterInfo.Name is null) 
-                throw new NotSupportedException($"Argument name cannot be deduced from parameter [{info}], specify name explicitly");
-            Argument instance = ArgumentBuilder.CreateArgument(parameterInfo);
+            var name = info.Name ?? parameterInfo.Name ?? throw new NotSupportedException($"Argument name cannot be deduced from parameter [{info}], specify name explicitly");
+            Argument instance = ArgumentBuilder.CreateArgument(name, parameterInfo);
             if (info.Arity.HasValue)
                 instance.Arity = info.Arity.Value;
             if (info.HelpName != null)
                 instance.HelpName = info.HelpName;
             instance.Hidden = info.IsHidden;
+            instance.Description = info.Description;
             return instance;
         }
 

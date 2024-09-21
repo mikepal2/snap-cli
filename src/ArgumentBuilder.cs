@@ -27,18 +27,18 @@ internal static class ArgumentBuilder
         return (CliArgument)ctor.Invoke(new object[] { name });
     }
 
-    internal static CliArgument CreateArgument(ParameterInfo argsParam)
+    internal static CliArgument CreateArgument(string name, ParameterInfo argsParam)
     {
         if (!argsParam.HasDefaultValue)
         {
-            return CreateArgument(argsParam.ParameterType, argsParam.Name!);
+            return CreateArgument(argsParam.ParameterType, name);
         }
 
         var argumentType = typeof(Bridge<>).MakeGenericType(argsParam.ParameterType);
 
         var ctor = argumentType.GetConstructor(new[] { typeof(string), argsParam.ParameterType })!;
 
-        return (CliArgument)ctor.Invoke(new object[] { argsParam.Name!, argsParam.DefaultValue! });
+        return (CliArgument)ctor.Invoke(new object[] { name, argsParam.DefaultValue! });
     }
 
     private sealed class Bridge<T> : CliArgument<T>

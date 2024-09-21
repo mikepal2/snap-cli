@@ -5,6 +5,8 @@ namespace Tests
     [TestClass]
     public class UnitTest1
     {
+        static StringWriter Out = new StringWriter();
+
         [TestMethod]
         [DataRow("", "[testhost()]")]
         [DataRow("-?", "Root description")]
@@ -32,38 +34,39 @@ namespace Tests
         [DataRow("test6 -?", "Test6 description|test6 <arg1name> [<argument2>] [options]")]
         [DataRow("test6 -?", "<arg1help>  arg1 description")]
         [DataRow("test6 -?", "<arg2help>  arg2 description [default: arg2]")]
-        [DataRow("test6 -?", " -O, --opt1alias, --opt1name (REQUIRED)|opt1 description")]
+        [DataRow("test6 -?", " -O, --opt1alias, --opt1name <opt1help> (REQUIRED)|opt1 description")]
         [DataRow("test6 -?", "--option2 <opt2help>|opt2 description [default: 1]")]
-        [DataRow("test6 -?", "--globalOptionField <globalOptionField>")]
+        [DataRow("test6 -?", "--globalOptionField")]
         [DataRow("test6 -?", "[default: globalOptionFieldDefaultValue]")]
         [DataRow("test6 -?", "--prop, --propAlias <propHelpName>")]
         [DataRow("test6 -?", "Prop description [default: globalOptionPropertyDefaultValue]")]
 
         public void TestCLI(string commandLine, string expectedOutputs)
         {
-            var consoleOut = new StringWriter();
-            Console.SetOut(consoleOut);
-            Console.SetError(consoleOut);
-            CLI.Run(SplitArgs(commandLine).ToArray());
-            var output = consoleOut.ToString().Trim(" \r\n".ToCharArray());
-            foreach (var _expectedOutput in expectedOutputs.Split('|'))
+            lock (Out)
             {
-                var expectedOutput = _expectedOutput;
-                bool expectedContains = true;
-                if (expectedOutput.StartsWith("!"))
+                Out.GetStringBuilder().Clear();
+                CLI.Run(SplitArgs(commandLine).ToArray(), Out, Out);
+                var output = Out.ToString().Trim(" \r\n".ToCharArray());
+                foreach (var _expectedOutput in expectedOutputs.Split('|'))
                 {
-                    expectedContains = false;
-                    expectedOutput = expectedOutput.Substring(1);
-                }
+                    var expectedOutput = _expectedOutput;
+                    bool expectedContains = true;
+                    if (expectedOutput.StartsWith("!"))
+                    {
+                        expectedContains = false;
+                        expectedOutput = expectedOutput.Substring(1);
+                    }
 
-                if (output.Contains(expectedOutput) != expectedContains)
-                    throw new Exception($"Test failed: Command line={string.Join(" ", commandLine)} expected output: {expectedOutput}\n\nOutput:\n{consoleOut}\n");
+                    if (output.Contains(expectedOutput) != expectedContains)
+                        throw new Exception($"Test failed: Command line={string.Join(" ", commandLine)} expected output: {expectedOutput}\n\nOutput:\n{Out}\n");
+                }
             }
         }
 
         private static void TraceCommand(params object?[] args)
         {
-            Console.WriteLine($"[{CLI.CurrentCommand.Name}({string.Join(",", args)})]");
+            Out.WriteLine($"[{CLI.CurrentCommand.Name}({string.Join(",", args)})]");
         }
 
 
