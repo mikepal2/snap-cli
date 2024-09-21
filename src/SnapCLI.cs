@@ -495,7 +495,7 @@ namespace SnapCLI
             {
                 var info = param.GetCustomAttribute<DescriptorAttribute>() ?? new OptionAttribute();
                 Func<object?>? getDefaultValue = null;
-                if (param.HasDefaultValue && param.DefaultValue != null)
+                if (param.HasDefaultValue)
                     getDefaultValue = () => param.DefaultValue;
                 switch (info.Kind)
                 {
