@@ -245,10 +245,16 @@ namespace SnapCLI
         {
             private class StandardStreamWriter : IStandardStreamWriter
             {
-                public StandardStreamWriter(TextWriter stream) { }
+                public StandardStreamWriter(TextWriter stream)
+                {
+                    Stream = stream;
+                }
+
+                public TextWriter Stream { get; }
+
                 public void Write(string? value)
                 {
-                    throw new NotImplementedException();
+                    Stream.Write(value);
                 }
             }
 
