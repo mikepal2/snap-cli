@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "sample-inventory": {
+      "commandName": "Project",
+      "commandLineArgs": "add chair 1"
+    }
+  }
+}
