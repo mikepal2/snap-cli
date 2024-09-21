@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -287,6 +288,8 @@ namespace SnapCLI
             }
         }
 
+        private static Configuration? _configuration = null;
+
         /// <summary>
         /// Builds commands hierarchy based on attributes.
         /// </summary>
@@ -294,8 +297,8 @@ namespace SnapCLI
         /// <exception cref="InvalidOperationException">Commands hierarchy already built or there are attributes usage errors detected.</exception>
         public static Configuration BuildCommands()
         {
-            if (rootCommand != null)
-                return rootCommand; // BuildCommands() was already invoked and commands hierarchy built
+            if (_configuration != null)
+                return _configuration; // BuildCommands() was already invoked and commands hierarchy built
 
             Assembly executingAssembly = Assembly.GetExecutingAssembly();
             Assembly assembly = Assembly.GetEntryAssembly() ?? executingAssembly;
@@ -391,9 +394,9 @@ namespace SnapCLI
                 if (command.Subcommands.Count == 0 && command.Action == null && command.Hidden == false)
                     throw new InvalidOperationException($"Command '{command.Name}' has no subcommands nor handler methods");
 
-            var config = new Configuration(rootCommand);
+            _configuration = new Configuration(rootCommand);
 
-            return config;
+            return _configuration;
         }
 
         // find [RootCommand] and [Command] attributes declared on class
@@ -574,7 +577,8 @@ namespace SnapCLI
             bool isRequired = info.IsRequired || defaultValueFactory == null;
             Option instance = isRequired ?
                 OptionBuilder.CreateOption(name, valueType, info.Description) :
-                OptionBuilder.CreateOption(name, valueType, info.Description, defaultValueFactory);
+                OptionBuilder.CreateOption(name, valueType, info.Description, defaultValueFactory!);
+            instance.Required = isRequired;
 
             if (info.Arity.HasValue)
                 instance.Arity = info.Arity.Value;
@@ -584,7 +588,6 @@ namespace SnapCLI
             if (info.Aliases != null)
                 foreach (var alias in info.Aliases)
                     instance.Aliases.Add(AddPrefix(alias));
-            instance.Required = isRequired;
             return instance;
 
             static string AddPrefix(string name)
