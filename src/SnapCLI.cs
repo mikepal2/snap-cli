@@ -316,7 +316,10 @@ namespace SnapCLI
             {
                 var callingAssembly = new StackTrace(1, false).GetFrames().Select(f => f.GetMethod()?.Module?.Assembly).FirstOrDefault(a => a != null && a != executingAssembly);
                 if (callingAssembly != null)
+                {
+                    assembly = callingAssembly;
                     commandMethods = GetCommandMethods(callingAssembly, bindingFlags);
+                }
             }
 
             if (commandMethods.Count == 0)
