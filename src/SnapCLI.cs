@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.IO;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -239,19 +241,68 @@ namespace SnapCLI
     /// </summary>
     public static class CLI
     {
+        private class ConsoleHelper : IConsole
+        {
+            private class StandardStreamWriter : IStandardStreamWriter
+            {
+                public StandardStreamWriter(TextWriter stream) { }
+                public void Write(string? value)
+                {
+                    throw new NotImplementedException();
+                }
+            }
+
+            private ConsoleHelper(TextWriter? output, TextWriter? error)
+            {
+                Out = new StandardStreamWriter(output ?? Console.Out);
+                IsOutputRedirected = output != null;
+                Error = new StandardStreamWriter(error ?? Console.Error);
+                IsErrorRedirected = error != null;
+            }
+
+            public static IConsole? CreateOrDefault(TextWriter? output = null, TextWriter? error = null)
+            {
+                if (output == null && error == null)
+                    return null;
+                return new ConsoleHelper(output, error);
+            }
+
+            IStandardStreamWriter Out;
+            IStandardStreamWriter Error;
+
+            public bool IsOutputRedirected;
+
+            public bool IsErrorRedirected;
+
+            IStandardStreamWriter IStandardOut.Out => Out;
+
+            IStandardStreamWriter IStandardError.Error => Error;
+
+            bool IStandardOut.IsOutputRedirected => IsOutputRedirected;
+
+            bool IStandardError.IsErrorRedirected => IsErrorRedirected;
+
+            bool IStandardIn.IsInputRedirected => false;
+        }
+
+
         /// <summary>
         /// Helper method to run CLI application. Should be called from program Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
+        /// <param name="output">Redirect output stream</param>
+        /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), ConsoleHelper.CreateOrDefault(output, error));
 
         /// <summary>
         /// Helper asynchronous method to run CLI application. Should be called from program async Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
+        /// <param name="output">Redirect output stream</param>
+        /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), ConsoleHelper.CreateOrDefault(output, error));
 
         /// <summary>
         /// Provides access to commands hierarchy and their options and arguments.
