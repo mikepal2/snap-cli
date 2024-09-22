@@ -141,7 +141,7 @@ Options:
   -?, -h, --help  Show help and usage information
 ```
 
-We may run the command without a parameter (default name `World` is being used):
+We may run the command without a parameter (default name `World` is used):
 ```text
 > sample hello
 Hello World!
