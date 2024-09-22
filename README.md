@@ -47,13 +47,12 @@ public static void Hello()
 }
 ```
 
-Async handler methods are supported. 
+Async handler methods are also supported. 
 
 The library supports handler methods with the following return types: `void`, `int`, `Task<int>`, `Task`, `ValueTask<int>`, and `ValueTask`. The result from handlers returning `int`, `Task<int>`, and `ValueTask<int>` is used as the program's exit code.
 
-
 ```csharp
-[Command(name:"sleep", description:"Sleep example")]
+[Command(name:"sleep", description:"Async sleep example")]
 public static async Task<int> Sleep(int milliseconds = 1000)
 {
     Console.WriteLine("Sleeping...");
@@ -111,7 +110,25 @@ Required options must be specified on the command line; otherwise, the program w
 
 **What do we have so far?**
 
+With the full program source code consisting of just a few lines:
+```csharp
+using SnapCLI;
+
+class Sample
+{
+    [Command(name:"hello", description:"Hello example")]
+    public static void Hello(
+        [Option(name:"name", description:"The name we should use for the greeting")]
+        string name = "World"
+    ) 
+    {
+        Console.WriteLine($"Hello {name}!");
+    }
+}
 ```
+
+We get complete help output:
+```text
 > sample hello -?
 Description:
   Hello example
@@ -122,10 +139,16 @@ Usage:
 Options:
   --name <name>   The name we should use for the greeting [default: World]
   -?, -h, --help  Show help and usage information
+```
 
+We may run the command without a parameter (default name `World` is used):
+```text
 > sample hello
 Hello World!
+```
 
+And we may may run command with the a parameter:
+```text
 > sample hello --name Michael
 Hello Michael!
 ```
@@ -136,7 +159,7 @@ An [argument](https://learn.microsoft.com/en-us/dotnet/standard/commandline/synt
 You can declare that parameter is argument with an `[Argument]` attribute. Lets change `Option` to `Argument` in our example:
 
 ```csharp
-[Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
+[Command(name:"hello", description:"Hello example")]
 public static void Hello(
     [Argument(name:"name", description:"The name we should use for the greeting")]
     string name = "World"
@@ -146,9 +169,14 @@ public static void Hello(
 }
 ```
 
-Now we don't need to specify `--name` option name. Also, note how the help message has changed:
-
+Now we don't need to specify `--name` option name.
+```text
+> sample hello Michael
+Hello Michael!
 ```
+
+Also, note how the help message has changed:
+```text
 > sample hello -?
 Description:
   Hello example
@@ -161,9 +189,6 @@ Arguments:
 
 Options:
   -?, -h, --help  Show help and usage information
-
-> sample hello Michael
-Hello Michael!
 ```
 
 **Argument name convention**
@@ -188,7 +213,7 @@ public static void Print(
 
 Output:
 
-```
+```text
 > sample print -?
 Description:
   Arity example
@@ -201,10 +226,12 @@ Arguments:
 
 Options:
   -?, -h, --help  Show help and usage information
-
+```
+```text
 > sample print 12
 Numbers are: 12!
-
+```
+```text
 > sample print 12 76
 Numbers are: 12,76!
 ```
@@ -272,7 +299,7 @@ public static void hello_world()
 
 The usage output will be as follows:
 
-```
+```text
 > sample -?
 Description:
 
@@ -285,7 +312,8 @@ Options:
 
 Commands:
   hello
-
+```
+```text
 > sample hello -?
 Description:
 
@@ -297,7 +325,8 @@ Options:
 
 Commands:
   world
-
+```
+```text
 > sample hello world -?
 Description:
   This command greets the world!
@@ -308,7 +337,8 @@ Usage:
 Options:
   -?, -h, --help  Show help and usage information
 
-
+```
+```text
 > sample hello world
 Hello World!
 ```
