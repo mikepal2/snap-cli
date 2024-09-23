@@ -1,7 +1,5 @@
 using SnapCLI;
 using System.CommandLine;
-using System.CommandLine.Builder;
-using System.CommandLine.Parsing;
 using System.Text;
 using System.Text.RegularExpressions;
 namespace Tests
@@ -41,13 +39,14 @@ namespace Tests
         [DataRow("test6 -?", "like:*Test6 description*test6 <arg1name> [<argument2>] [options]*")]
         [DataRow("test6 -?", "<arg1help>  arg1 description")]
         [DataRow("test6 -?", "<arg2help>  arg2 description [default: arg2]")]
-        [DataRow("test6 -?", "like:* -O, --opt1alias, --opt1name (REQUIRED)*opt1 description*")]
+        [DataRow("test6 -?", "like:* -O, --opt1alias, --opt1name *(REQUIRED)*opt1 description*")]
         [DataRow("test6 -?", "like:*--option2 <opt2help>*opt2 description [default: 1]*")]
         [DataRow("test6 -?", "--globalOptionField")]
         [DataRow("test6 -?", "[default: globalOptionFieldDefaultValue]")]
         [DataRow("test6 -?", "--prop, --propAlias <propHelpName>")]
         [DataRow("test6 -?", "Prop description [default: globalOptionPropertyDefaultValue]")]
-        [DataRow("exception", "like:*[exception:*TEST-GENERATED EXCEPTION*[exitCode:999]*")]
+        [DataRow("exception", "like:*[exception()]*TEST-GENERATED EXCEPTION*")]
+        [DataRow("exception", "![exitCode:0]")]
         [DataRow("exitcode", "[exitCode:0]")]
         [DataRow("exitcode --exitCode 1", "[exitCode:1]")]
         [DataRow("exitcode --exitCode -1", "[exitCode:-1]")]
@@ -59,7 +58,7 @@ namespace Tests
             lock (Out)
             {
                 Out.GetStringBuilder().Clear();
-                int exitCode = CLI.Run(SplitArgs(commandLine).ToArray(), Out, Out);
+                int exitCode = CLI.Run(SplitArgs(commandLine).ToArray());
                 Out.WriteLine($"[exitCode:{exitCode}]");
                 var output = Out.ToString().Trim(" \r\n".ToCharArray());
                 bool expectedContains = true;
@@ -77,7 +76,7 @@ namespace Tests
                 else
                     contains = output.Contains(pattern);
 
-                Assert.IsTrue(contains, $"Output {(expectedContains ? "does not contain" : "contains")} '{pattern}'\n\nOutput:\n{Out}\n");
+                Assert.IsTrue(contains == expectedContains, $"Output {(expectedContains ? "does not contain" : "contains")} '{pattern}'\n\nOutput:\n{Out}\n");
             }
         }
 
@@ -87,22 +86,11 @@ namespace Tests
         }
 
         [Startup]
-        public static void Startup(CommandLineBuilder commandLineBuilder)
+        public static void Startup(CliConfiguration configuration)
         {
-            Assert.IsNotNull(commandLineBuilder);
-            
-            // must configure CommandLineBuilder
-            commandLineBuilder.UseDefaults();
-
-            // UseDefaults() already added exception handler and we add another one here...
-            // This works for now, but their order may change in future that will lead to test fail.
-            // The alternative will be to manually add everything UseDefaults() does but with own .UseExceptionHandler()
-
-            commandLineBuilder.UseExceptionHandler((ex, ctx) =>
-            {
-                Out.WriteLine($"[exception:{ex}]");
-                ctx.ExitCode = 999;
-            });
+            Assert.IsNotNull(configuration);
+            configuration.Output = Out;
+            configuration.Error = Out;
         }
 
         [Startup]

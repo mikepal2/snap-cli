@@ -3,10 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Builder;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -248,7 +244,7 @@ namespace SnapCLI
     }
 
     /// <summary>
-    /// Declares configuration method for CLI. The method must be public static and receive single argument of type <see cref="CommandLineBuilder"/>.
+    /// Declares configuration method for CLI. The method must be public static and may have no parameters or one parameter of type <see cref="CliConfiguration"/>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class StartupAttribute : Attribute
@@ -278,56 +274,6 @@ namespace SnapCLI
     /// </summary>
     public static class CLI
     {
-        private class ConsoleHelper : IConsole
-        {
-            private class StandardStreamWriter : IStandardStreamWriter
-            {
-                public StandardStreamWriter(TextWriter stream)
-                {
-                    Stream = stream;
-                }
-
-                public TextWriter Stream { get; }
-
-                public void Write(string? value)
-                {
-                    Stream.Write(value);
-                }
-            }
-
-            private ConsoleHelper(TextWriter? output, TextWriter? error)
-            {
-                Out = new StandardStreamWriter(output ?? Console.Out);
-                IsOutputRedirected = output != null;
-                Error = new StandardStreamWriter(error ?? Console.Error);
-                IsErrorRedirected = error != null;
-            }
-
-            public static IConsole? CreateOrDefault(TextWriter? output = null, TextWriter? error = null)
-            {
-                if (output == null && error == null)
-                    return null;
-                return new ConsoleHelper(output, error);
-            }
-
-            IStandardStreamWriter Out;
-            IStandardStreamWriter Error;
-
-            public bool IsOutputRedirected;
-
-            public bool IsErrorRedirected;
-
-            IStandardStreamWriter IStandardOut.Out => Out;
-
-            IStandardStreamWriter IStandardError.Error => Error;
-
-            bool IStandardOut.IsOutputRedirected => IsOutputRedirected;
-
-            bool IStandardError.IsErrorRedirected => IsErrorRedirected;
-
-            bool IStandardIn.IsInputRedirected => false;
-        }
-
         /// <summary>
         /// Delegate type for event handler invoked before command is executed
         /// </summary>
@@ -352,31 +298,27 @@ namespace SnapCLI
         /// </summary>
         public static event AfterCommandCallback? AfterCommand;
 
-        private static Parser? _parser;
-        private static Parser Parser => _parser ??= BuildCommands();
+        private static Configuration? _configuration;
+        private static Configuration Configuration => _configuration ??= BuildCommands();
 
         /// <summary>
         /// Helper method to run CLI application. Should be called from program Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
-        /// <param name="output">Redirect output stream</param>
-        /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => BuildCommands(output, error).Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+        public static int Run(string[]? args = null) => Configuration.Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
 
         /// <summary>
         /// Helper asynchronous method to run CLI application. Should be called from program async Main() entry point.
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
-        /// <param name="output">Redirect output stream</param>
-        /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => await BuildCommands(output, error).InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+        public static async Task<int> RunAsync(string[]? args = null) => await Configuration.InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
 
         /// <summary>
         /// Provides access to commands hierarchy and their options and arguments.
         /// </summary>
-        public static Command RootCommand => Parser.Configuration.RootCommand;
+        public static Command RootCommand => Configuration.RootCommand;
 
         /// <summary>
         /// Provides access to currently executing command definition.
@@ -406,14 +348,12 @@ namespace SnapCLI
             }
         }
 
-        private static Configuration? _configuration = null;
-
         /// <summary>
         /// Builds commands hierarchy based on attributes.
         /// </summary>
-        /// <returns>Returns <see cref="Parser"></see></returns>
+        /// <returns>Returns <see cref="Configuration"></see></returns>
         /// <exception cref="InvalidOperationException">Commands hierarchy already built or there are attributes usage errors detected.</exception>
-        private static Parser BuildCommands()
+        private static Configuration BuildCommands()
         {
             Assembly executingAssembly = Assembly.GetExecutingAssembly();
             Assembly assembly = Assembly.GetEntryAssembly() ?? executingAssembly;
@@ -525,22 +465,20 @@ namespace SnapCLI
                 if (command.Subcommands.Count == 0 && command.Action == null && command.Hidden == false)
                     throw new InvalidOperationException($"Command '{command.Name}' has no subcommands nor handler methods");
 
-            var builder = new CommandLineBuilder(rootCommand);
+            var configuration = new Configuration(rootCommand);
 
             // call [Startup] methods
 
-            var startupMethods = GetCallbackMethodsByAttribute<StartupAttribute>(assembly, bindingFlags, paramTypes: new Type[] { typeof(CommandLineBuilder) }, paramsAreOptional: true);
+            var startupMethods = GetCallbackMethodsByAttribute<StartupAttribute>(assembly, bindingFlags, paramTypes: new Type[] { typeof(Configuration) }, paramsAreOptional: true);
 
-            bool useDefaults = true;
             if (startupMethods.Any())
             {
-                var _params = new object[] { builder };
+                var _params = new object[] { configuration };
                 foreach (var method in startupMethods)
                 {
                     if (method.GetParameters().Length > 0)
                     {
-                        useDefaults = false; // this startup method is responsible for builder configuration
-                        method.Invoke(null, new object[] { builder });
+                        method.Invoke(null, new object[] { configuration });
                     }
                     else
                     {
@@ -549,18 +487,9 @@ namespace SnapCLI
                 }
             }
 
-            if (useDefaults)
-                builder.UseDefaults();
+            configuration.ThrowIfInvalid();
 
-            var parser = builder.Build();
-
-            _configuration = new Configuration(rootCommand);
-            if (output != null)
-                _configuration.Output = output;
-            if (error != null)
-                _configuration.Error = error;
-
-            return parser;
+            return configuration;
         }
 
         // find [RootCommand] and [Command] attributes declared on class
@@ -734,11 +663,11 @@ namespace SnapCLI
 
                 var _params = paramInfo.Select(param => parseResult.GetValue((dynamic)param)).ToArray();
 
-                BeforeCommand?.Invoke(ctx.ParseResult, command);
+                BeforeCommand?.Invoke(parseResult, command);
                 
                 var awatable = method.Invoke(null, _params)!;
 
-                AfterCommand?.Invoke(ctx.ParseResult, command);
+                AfterCommand?.Invoke(parseResult, command);
                 var exitCode = 0;
 
                 if (awatable != null)
