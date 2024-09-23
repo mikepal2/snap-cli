@@ -1,5 +1,9 @@
 using SnapCLI;
+using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Parsing;
 using System.Text;
+using System.Text.RegularExpressions;
 namespace Tests
 {
     [TestClass]
@@ -10,7 +14,7 @@ namespace Tests
         [TestMethod]
         [DataRow("", "[testhost()]")]
         [DataRow("-?", "Root description")]
-        [DataRow("test1", "[test1()]")]
+        [DataRow("test1", "like:*[before:test1]*[test1()]*[after:test1]*")]
         [DataRow("test2", "'-p' is required")]
         [DataRow("test2 -p 1", "test2(1)")]
         [DataRow("test3", "test3(2)")]
@@ -25,42 +29,55 @@ namespace Tests
         [DataRow("test6 --opt1name", "Required argument")]
         [DataRow("test6 --opt1name a", "expected type 'System.Int32'")]
         [DataRow("test6 --opt1name 222", "test6(True,222,1,arg2)")]
+        [DataRow("test6 --opt1alias 222", "test6(True,222,1,arg2)")]
+        [DataRow("test6 -O 222", "test6(True,222,1,arg2)")]
         [DataRow("test6 --opt1name false 222", "test6(False,222,1,arg2)")]
+        [DataRow("test6 -O false 222", "test6(False,222,1,arg2)")]
         [DataRow("test6 --opt1name false --option2", "Required argument missing")]
         [DataRow("test6 --opt1name false 222 --option2 2", "test6(False,222,2,arg2)")]
         [DataRow("test6 --opt1name false 222 --option2 2 arg2_new", "test6(False,222,2,arg2_new)")]
         [DataRow("test6 --opt1name --option2 2 222 arg2_new", "test6(True,222,2,arg2_new)")] // change order - options first
         [DataRow("test6 222 arg2_new --opt1name false --option2 2 ", "test6(False,222,2,arg2_new)")] // change order - arguments first
-        [DataRow("test6 -?", "Test6 description|test6 <arg1name> [<argument2>] [options]")]
+        [DataRow("test6 -?", "like:*Test6 description*test6 <arg1name> [<argument2>] [options]*")]
         [DataRow("test6 -?", "<arg1help>  arg1 description")]
         [DataRow("test6 -?", "<arg2help>  arg2 description [default: arg2]")]
-        [DataRow("test6 -?", " -O, --opt1alias, --opt1name (REQUIRED)|opt1 description")]
-        [DataRow("test6 -?", "--option2 <opt2help>|opt2 description [default: 1]")]
+        [DataRow("test6 -?", "like:* -O, --opt1alias, --opt1name (REQUIRED)*opt1 description*")]
+        [DataRow("test6 -?", "like:*--option2 <opt2help>*opt2 description [default: 1]*")]
         [DataRow("test6 -?", "--globalOptionField")]
         [DataRow("test6 -?", "[default: globalOptionFieldDefaultValue]")]
         [DataRow("test6 -?", "--prop, --propAlias <propHelpName>")]
         [DataRow("test6 -?", "Prop description [default: globalOptionPropertyDefaultValue]")]
-
-        public void TestCLI(string commandLine, string expectedOutputs)
+        [DataRow("exception", "like:*[exception:*TEST-GENERATED EXCEPTION*[exitCode:999]*")]
+        [DataRow("exitcode", "[exitCode:0]")]
+        [DataRow("exitcode --exitCode 1", "[exitCode:1]")]
+        [DataRow("exitcode --exitCode -1", "[exitCode:-1]")]
+        [DataRow("exitcodeasync", "[exitCode:0]")]
+        [DataRow("exitcodeasync --exitCode 1", "[exitCode:1]")]
+        [DataRow("exitcodeasync --exitCode -1", "[exitCode:-1]")]
+        public void TestCLI(string commandLine, string pattern)
         {
             lock (Out)
             {
                 Out.GetStringBuilder().Clear();
-                CLI.Run(SplitArgs(commandLine).ToArray(), Out, Out);
+                int exitCode = CLI.Run(SplitArgs(commandLine).ToArray(), Out, Out);
+                Out.WriteLine($"[exitCode:{exitCode}]");
                 var output = Out.ToString().Trim(" \r\n".ToCharArray());
-                foreach (var _expectedOutput in expectedOutputs.Split('|'))
-                {
-                    var expectedOutput = _expectedOutput;
-                    bool expectedContains = true;
-                    if (expectedOutput.StartsWith("!"))
-                    {
-                        expectedContains = false;
-                        expectedOutput = expectedOutput.Substring(1);
-                    }
+                bool expectedContains = true;
 
-                    if (output.Contains(expectedOutput) != expectedContains)
-                        throw new Exception($"Test failed: Command line={string.Join(" ", commandLine)} expected output: {expectedOutput}\n\nOutput:\n{Out}\n");
+                if (pattern.StartsWith("!"))
+                {
+                    expectedContains = false;
+                    pattern = pattern.Substring(1);
                 }
+                bool contains;
+                if (pattern.StartsWith("like:"))
+                    contains = output.Like(pattern.Substring("like:".Length));
+                else if (pattern.StartsWith("regex:"))
+                    contains = Regex.IsMatch(output, pattern.Substring("regex:".Length));
+                else
+                    contains = output.Contains(pattern);
+
+                Assert.IsTrue(contains, $"Output {(expectedContains ? "does not contain" : "contains")} '{pattern}'\n\nOutput:\n{Out}\n");
             }
         }
 
@@ -69,6 +86,46 @@ namespace Tests
             Out.WriteLine($"[{CLI.CurrentCommand.Name}({string.Join(",", args)})]");
         }
 
+        [Startup]
+        public static void Startup(CommandLineBuilder commandLineBuilder)
+        {
+            Assert.IsNotNull(commandLineBuilder);
+            
+            // must configure CommandLineBuilder
+            commandLineBuilder.UseDefaults();
+
+            // UseDefaults() already added exception handler and we add another one here...
+            // This works for now, but their order may change in future that will lead to test fail.
+            // The alternative will be to manually add everything UseDefaults() does but with own .UseExceptionHandler()
+
+            commandLineBuilder.UseExceptionHandler((ex, ctx) =>
+            {
+                Out.WriteLine($"[exception:{ex}]");
+                ctx.ExitCode = 999;
+            });
+        }
+
+        [Startup]
+        public static void Stratup2()
+        {
+            CLI.BeforeCommand += (parseResult, command) => { Out.WriteLine($"[before:{command.Name}]"); };
+            CLI.AfterCommand += (parseResult, command) => { Out.WriteLine($"[after:{command.Name}]"); };
+        }
+
+#if BEFORE_AFTER_COMMAND_ATTRIBUTE
+        [BeforeCommand]
+        public static void PreCommand(ParseResult parseResult, Command command)
+        {
+            Out.WriteLine($"[PreCommand:{command.Name}]");
+        }
+
+
+        [AfterCommand]
+        public static void PostCommand(ParseResult parseResult, Command command)
+        {
+            Out.WriteLine($"[PostCommand:{command.Name}]");
+        }
+#endif
 
         [Option]
         public static string? globalOptionField = globalOptionFieldDefaultValue;
@@ -140,6 +197,25 @@ namespace Tests
             )
         {
             TraceCommand(option1, argument1, option2, argument2);
+        }
+
+        [Command]
+        public static void exception()
+        {
+            TraceCommand();
+            throw new ApplicationException("THIS IS TEST-GENERATED EXCEPTION!");
+        }
+
+        [Command]
+        public static int exitCode(int exitCode = 0)
+        {
+            return exitCode;
+        }
+
+        [Command]
+        public static Task<int> exitCodeAsync(int exitCode = 0)
+        {
+            return Task.FromResult(exitCode);
         }
 
 

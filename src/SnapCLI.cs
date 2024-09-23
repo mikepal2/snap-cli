@@ -1,8 +1,12 @@
-﻿using System;
+﻿//#define BEFORE_AFTER_COMMAND_ATTRIBUTE
+
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -237,6 +241,32 @@ namespace SnapCLI
     }
 
     /// <summary>
+    /// Declares configuration method for CLI. The method must be public static and receive single argument of type <see cref="CommandLineBuilder"/>.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class StartupAttribute : Attribute
+    {
+    }
+
+#if BEFORE_AFTER_COMMAND_ATTRIBUTE
+    /// <summary>
+    /// Declares configuration method for CLI. The method must be public static and receive single argument of type <see cref="CommandLineBuilder"/>.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class BeforeCommandAttribute : Attribute
+    {
+    }
+
+    /// <summary>
+    /// Declares configuration method for CLI. The method must be public static and receive single argument of type <see cref="CommandLineBuilder"/>.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class AfterCommandAttribute : Attribute
+    {
+    }
+#endif
+
+    /// <summary>
     /// Command Line Interface class implementation. Provides simple interface to create CLI programs using attributes declarations.
     /// </summary>
     public static class CLI
@@ -291,6 +321,32 @@ namespace SnapCLI
             bool IStandardIn.IsInputRedirected => false;
         }
 
+        /// <summary>
+        /// Delegate type for event handler invoked before command is executed
+        /// </summary>
+        /// <param name="parseResult">Command line parsing result</param>
+        /// <param name="command">Command that will be executed</param>
+        public delegate void BeforeCommandCallback(ParseResult parseResult, Command command);
+
+        /// <summary>
+        /// Event invoked immediately before command is executed. Can be used for custom initialization.
+        /// </summary>
+        public static event BeforeCommandCallback? BeforeCommand;
+
+        /// <summary>
+        /// Delegate type for event handler invoked after command is executed
+        /// </summary>
+        /// <param name="parseResult">Command line parsing result</param>
+        /// <param name="command">Command that was executed</param>
+        public delegate void AfterCommandCallback(ParseResult parseResult, Command command);
+
+        /// <summary>
+        /// Event invoked immediately after command was executed. Can be used for deinitialization.
+        /// </summary>
+        public static event AfterCommandCallback? AfterCommand;
+
+        private static Parser? _parser;
+        private static Parser Parser => _parser ??= BuildCommands();
 
         /// <summary>
         /// Helper method to run CLI application. Should be called from program Main() entry point.
@@ -299,7 +355,10 @@ namespace SnapCLI
         /// <param name="output">Redirect output stream</param>
         /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => BuildCommands().Invoke(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), ConsoleHelper.CreateOrDefault(output, error));
+        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) {
+            var parseResult = Parser.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+            return parseResult.Invoke(ConsoleHelper.CreateOrDefault(output, error));
+            }
 
         /// <summary>
         /// Helper asynchronous method to run CLI application. Should be called from program async Main() entry point.
@@ -308,13 +367,12 @@ namespace SnapCLI
         /// <param name="output">Redirect output stream</param>
         /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => await BuildCommands().InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), ConsoleHelper.CreateOrDefault(output, error));
+        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => await Parser.InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), ConsoleHelper.CreateOrDefault(output, error));
 
         /// <summary>
         /// Provides access to commands hierarchy and their options and arguments.
         /// </summary>
-        public static RootCommand RootCommand => rootCommand ?? throw new InvalidOperationException($"{nameof(BuildCommands)}() must be invoked before accessing {nameof(RootCommand)} property");
-        private static RootCommand? rootCommand = null;
+        public static Command RootCommand => Parser.Configuration.RootCommand;
 
         /// <summary>
         /// Provides access to currently executing command definition.
@@ -329,7 +387,12 @@ namespace SnapCLI
         /// Current command invocation context provides access to parsed command line, CancellationToken, ExitCode and other properties.
         /// </summary>
         public static InvocationContext CurrentContext => _currentContext ?? throw new InvalidOperationException($"Cannot access {nameof(CurrentContext)} from outside of command handler method");
-        private static InvocationContext? _currentContext = null;
+        private static InvocationContext? _currentContext;
+
+#if BEFORE_AFTER_COMMAND_ATTRIBUTE
+        private static MethodInfo[]? _beforeCommandsCallbacks;
+        private static MethodInfo[]? _afterCommandsCallbacks;
+#endif
 
         private class CommandMethodDesc
         {
@@ -348,13 +411,10 @@ namespace SnapCLI
         /// <summary>
         /// Builds commands hierarchy based on attributes.
         /// </summary>
-        /// <returns>Returns <see cref="RootCommand"></see></returns>
+        /// <returns>Returns <see cref="Parser"></see></returns>
         /// <exception cref="InvalidOperationException">Commands hierarchy already built or there are attributes usage errors detected.</exception>
-        public static RootCommand BuildCommands()
+        private static Parser BuildCommands()
         {
-            if (rootCommand != null)
-                return rootCommand; // BuildCommands() was already invoked and commands hierarchy built
-
             Assembly executingAssembly = Assembly.GetExecutingAssembly();
             Assembly assembly = Assembly.GetEntryAssembly() ?? executingAssembly;
 
@@ -384,7 +444,7 @@ namespace SnapCLI
 
             // create root command
 
-            rootCommand = CreateRootCommand(assembly, globalDescriptors, commandMethods, out var rootMethod);
+            RootCommand rootCommand = CreateRootCommand(assembly, globalDescriptors, commandMethods, out var rootMethod);
 
             // add commands without handler methods, i.e. those declared with [Command] on class level
 
@@ -430,6 +490,22 @@ namespace SnapCLI
 
             // add method handlers
 
+#if BEFORE_AFTER_COMMAND_ATTRIBUTE
+            _beforeCommandsCallbacks = GetCallbackMethodsByAttribute<BeforeCommandAttribute>(assembly, bindingFlags, new Type[] {typeof(ParseResult), typeof(Command) });
+            BeforeCommand += (parseResult, command) =>
+            {
+                foreach (var callaback in _beforeCommandsCallbacks)
+                    callaback.Invoke(null, new object[] { parseResult, command });
+            };
+
+            _afterCommandsCallbacks = GetCallbackMethodsByAttribute<AfterCommandAttribute>(assembly, bindingFlags, new Type[] { typeof(ParseResult), typeof(Command) });
+            AfterCommand += (parseResult, command) =>
+            {
+                foreach (var callaback in _afterCommandsCallbacks)
+                    callaback.Invoke(null, new object[] {parseResult, command });
+            };
+#endif
+
             if (rootMethod != null)
                 AddCommandHandler(rootCommand, rootMethod.Method, globalOptionsInitializers);
 
@@ -447,13 +523,41 @@ namespace SnapCLI
                 if (command.Subcommands.Count == 0 && command.Handler == null && command.IsHidden == false)
                     throw new InvalidOperationException($"Command '{command.Name}' has no subcommands nor handler methods");
 
-            return rootCommand;
+            var builder = new CommandLineBuilder(rootCommand);
+
+            // call [Startup] methods
+
+            var startupMethods = GetCallbackMethodsByAttribute<StartupAttribute>(assembly, bindingFlags, paramTypes: new Type[] { typeof(CommandLineBuilder) }, paramsAreOptional: true);
+
+            bool useDefaults = true;
+            if (startupMethods.Any())
+            {
+                var _params = new object[] { builder };
+                foreach (var method in startupMethods)
+                {
+                    if (method.GetParameters().Length > 0)
+                    {
+                        useDefaults = false; // this startup method is responsible for builder configuration
+                        method.Invoke(null, new object[] { builder });
+                    }
+                    else
+                    {
+                        method.Invoke(null, null);
+                    }
+                }
+            }
+
+            if (useDefaults)
+                builder.UseDefaults();
+
+            var parser = builder.Build();
+
+            return parser;
         }
 
         // find [RootCommand] and [Command] attributes declared on class
         private static List<DescriptorAttribute> GetGlobalDescriptors(Assembly assembly, BindingFlags bindingFlags)
         {
-
             return assembly.GetTypes().SelectMany(t => t.GetCustomAttributes<DescriptorAttribute>()).ToList();
         }
 
@@ -473,6 +577,45 @@ namespace SnapCLI
                                   .ToList();
         }
 
+        // find methods declared with attribute
+        private static MethodInfo[] GetCallbackMethodsByAttribute<T>(Assembly assembly, BindingFlags bindingFlags, Type[] paramTypes, bool paramsAreOptional = false) where T : Attribute 
+        {
+            var methods = assembly.GetTypes()
+                .SelectMany(t => t.GetMethods(bindingFlags))
+                .Where(m => m.GetCustomAttribute<T>() != null)
+                .ToArray();
+
+            foreach (var method in methods)
+            {
+                var attributeName = typeof(T).Name.Replace("Attrubute", "");
+                if (!method.IsStatic)
+                    throw new InvalidOperationException($"Method {method.Name} declared as [{attributeName}] must be static");
+
+                if (!ValidateParams(method, paramTypes, paramsAreOptional))
+                {
+                    var methodDefinition = $"public static void {method.Name}(";
+                    methodDefinition += string.Join(", ", paramTypes.Select(t => (paramsAreOptional ? "[" : "") + t.Name));
+                    methodDefinition += paramsAreOptional ? new string(']', paramTypes.Length) : "";
+                    methodDefinition += " { ... }";
+                    throw new InvalidOperationException($"Method {method.Name} declared as [{attributeName}] must be of type: {methodDefinition}");
+                }
+            }
+
+            return methods;
+
+            static bool ValidateParams(MethodInfo method, Type[] paramTypes, bool paramsAreOptional)
+            {
+                var _params = method.GetParameters();
+                if (!paramsAreOptional && _params.Length != paramTypes.Length)
+                    return false;
+                if (_params.Length > paramTypes.Length)
+                    return false;
+                for (int i = 0; i < _params.Length; i++)
+                    if (_params[i].ParameterType != paramTypes[i])
+                        return false;
+                return true;
+            }
+        }
         private static RootCommand CreateRootCommand(Assembly assembly, List<DescriptorAttribute> globalDescriptors, List<CommandMethodDesc> commandMethods, out CommandMethodDesc? rootMethod)
         {
             var globalRootDescriptors = globalDescriptors.Where(d => d.Kind == DescriptorAttribute.DescKind.RootCommand).ToList();
@@ -595,7 +738,11 @@ namespace SnapCLI
                     }
                 }).ToArray();
 
+                BeforeCommand?.Invoke(ctx.ParseResult, command);
+                
                 var awatable = method.Invoke(null, _params)!;
+
+                AfterCommand?.Invoke(ctx.ParseResult, command);
 
                 if (awatable == null)
                 {
