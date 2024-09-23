@@ -13,19 +13,32 @@ The API paradigm of this project is to use [attributes](https://learn.microsoft.
 
 Any public static method can be declared as a CLI command handler using the `[Command]` attribute, and effectively represent an entry point to the CLI application for that command. Any parameter of command handler method automatically becomes a command option. See the [usage](#usage) section and examples below for more details.
 
-## Main method  
-Normally, the `Main` method is the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. This means that if you include your own `Main` function in the program, it will **not** be invoked.
-
 ## What about classes?
 There are multiple CLI frameworks that require separate class implementation for each command. In my opinion, creating a per-command classes adds unnecessary bloat to the code with little to no benefit. To provide additional information such as descriptions and aliases, attributes are anyway required on top of the class declaration. Since the goal is to simplify things as much as possible, I decided not to use classes at all in my approach. While this approach may not be as flexible as some other solutions, it meets the basic needs of most CLI applications. 
 
 ## Command line syntax
 Since this project is based on the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library, the parsing rules are exactly the same as those for that package. The Microsoft documentation provides detailed explanations of the [command-line syntax](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) recognized by `System.CommandLine`. I will include more links to this documentation throughout the text below.
 
+## Main method  
+Normally, the `Main` method is the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. This means that if you include your own `Main` function in the program, it will **not** be invoked. If you need some initialization code to run before command, it can be placed in [Startup](#startup) method. 
+
+If you really need to use your own `Main()`
+1. Add `<AutoGenerateEntryPoint>false</AutoGenerateEntryPoint>` property into your program .csproj file
+2. Call SnapCLI from your `Main()` method as follows
+    ```csharp
+    public static async Task<int> Main(string[] args)
+    {
+          // your initialization here
+        ...
+    
+        return await SnapCLI.CLI.RunAsync(args);
+    }
+    ```
+
 # Usage
 
 ## Commands
-A [command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#commands) in command-line input is a token that specifies an action or defines a group of related actions.
+A [command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#commands) in command-line input is a token that specifies an action or defines a group of related actions. Sometimes commands may be reffered as *verbs*. 
 
 Any public static method can be declared as a CLI command handler using the `[Command]` attribute. 
 
@@ -362,6 +375,35 @@ class Sample
     }
 }
 ```
+
+## Startup
+You may declare a method to perform additional initialization using `[Startup]` attribute. This method will be executed before command line is parsed.
+
+```csharp
+[Startup]
+public static void Startup()
+{
+    // additional initialization for your code
+    ...
+}
+```
+
+The startup method may have a parameter of type `CommandLineBuilder`. If you choose this alternative, you must configure `CommandLineBuilder` yourself, typically using the [.UseDefaults()](https://learn.microsoft.com/en-us/dotnet/api/system.commandline.builder.commandlinebuilderextensions.usedefaults?view=system-commandline#system-commandline-builder-commandlinebuilderextensions-usedefaults(system-commandline-builder-commandlinebuilder)) extension method.
+
+```csharp
+[Startup]
+public static void Startup(CommandLineBuilder commandLineBuilder)
+{
+    // additional initialization for your code
+    ...
+
+    // disable posix option bundling
+    commandLineBuilder
+      .UseDefaults()
+      .EnablePosixBundling(false);
+}
+```
+
 
 # .Net framework support
 Supported frameworks can be found on the [SnapCLI NuGet page](https://www.nuget.org/packages/SnapCLI#supportedframeworks-body-tab). The goal is to maintain the same level of support as the System.CommandLine library.
