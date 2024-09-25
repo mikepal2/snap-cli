@@ -307,13 +307,12 @@ namespace SnapCLI
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) 
+        public static int Run(string[]? args = null) 
         {
             try
             {
-                _error = error;
-                var parseResult = Parser.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
-                return parseResult.Invoke(ConsoleHelper.CreateOrDefault(output, error));
+                var parseResult = Configuration.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+                return parseResult.Invoke();
             }
             catch (Exception ex)
             {
@@ -329,13 +328,12 @@ namespace SnapCLI
         /// </summary>
         /// <param name="args">Command line arguments passed from Main()</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null)
+        public static async Task<int> RunAsync(string[]? args = null)
         {
             try
             {
-                _error = error;
-                var parseResult = Parser.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
-                return await parseResult.InvokeAsync(ConsoleHelper.CreateOrDefault(output, error));
+                var parseResult = Configuration.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+                return await parseResult.InvokeAsync();
             }
             catch (Exception ex)
             {
@@ -396,12 +394,6 @@ namespace SnapCLI
 
             return 1;
         }
-
-        /// <summary>
-        /// Current command invocation context provides access to parsed command line, CancellationToken, ExitCode and other properties.
-        /// </summary>
-        public static InvocationContext CurrentContext => _currentContext ?? throw new InvalidOperationException($"Cannot access {nameof(CurrentContext)} from outside of command handler method");
-        private static InvocationContext? _currentContext;
 
 #if BEFORE_AFTER_COMMAND_ATTRIBUTE
         private static MethodInfo[]? _beforeCommandsCallbacks;
@@ -540,6 +532,8 @@ namespace SnapCLI
                     throw new InvalidOperationException($"Command '{command.Name}' has no subcommands nor handler methods");
 
             var configuration = new Configuration(rootCommand);
+
+            configuration.EnableDefaultExceptionHandler = false;
 
             // call [Startup] methods
 
@@ -754,8 +748,8 @@ namespace SnapCLI
                 try
                 {
                     BeforeCommand?.Invoke(parseResult, command);
-                
-                    awatable = method.Invoke(null, _params)!;
+
+                    awaitable = method.Invoke(null, _params)!;
 
                     AfterCommand?.Invoke(parseResult, command);
                 }
@@ -765,9 +759,9 @@ namespace SnapCLI
                 }
                 var exitCode = 0;
 
-                if (awatable != null)
+                if (awaitable != null)
                 { 
-                    switch (awatable)
+                    switch (awaitable)
                     {
                         case Task<int> t:
                             exitCode = await t;

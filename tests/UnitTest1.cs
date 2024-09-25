@@ -47,7 +47,7 @@ namespace Tests
         [DataRow("test6 -?", "like:Test6 description*test6 <arg1name> [<argument2>] [options]")]
         [DataRow("test6 -?", "<arg1help>  arg1 description")]
         [DataRow("test6 -?", "<arg2help>  arg2 description [default: arg2]")]
-        [DataRow("test6 -?", "like: -O, --opt1alias, --opt1name (REQUIRED)*opt1 description")]
+        [DataRow("test6 -?", "like: -O, --opt1alias, --opt1name *(REQUIRED)*opt1 description")]
         [DataRow("test6 -?", "like:--option2 <opt2help>*opt2 description [default: 1]")]
         [DataRow("test6 -?", "--globalOptionField")]
         [DataRow("test6 -?", "[default: globalOptionFieldDefaultValue]")]
@@ -70,7 +70,7 @@ namespace Tests
             // synchronize tests
             lock (Out)
             {
-                CLI.RootCommand.HasAlias("a"); // force init on first test
+                CLI.RootCommand.Aliases.Contains("a"); // force init on first test
 
                 var defaultExceptionHandler = CLI.ExceptionHandler;
                 try
@@ -87,7 +87,7 @@ namespace Tests
 
                     try
                     {
-                        int exitCode = CLI.Run(SplitArgs(commandLine).ToArray(), Out, Out);
+                        int exitCode = CLI.Run(SplitArgs(commandLine).ToArray());
                         Out.WriteLine($"[exitCode:{exitCode}]");
                     }
                     catch (Exception ex)
