@@ -54,7 +54,7 @@ namespace Tests
         [DataRow("test6 -?", "[default: globalOptionFieldDefaultValue]")]
         [DataRow("test6 -?", "--prop, --propAlias <propHelpName>")]
         [DataRow("test6 -?", "Prop description [default: globalOptionPropertyDefaultValue]")]
-        [DataRow("exception", "like:[exception()]\r\nSystem.ApplicationException: THIS IS TEST-GENERATED EXCEPTION!*[exitCode:1]", UseExceptionHandler.Default)]
+        [DataRow("exception", $"like:[exception()]*\nSystem.ApplicationException: THIS IS TEST-GENERATED EXCEPTION!*[exitCode:1]", UseExceptionHandler.Default)]
         [DataRow("exception", "like:[exception:THIS IS TEST-GENERATED EXCEPTION!]*[exitCode:999]", UseExceptionHandler.Custom)]
         [DataRow("exception", "like:[unhandled:System.ApplicationException: THIS IS TEST-GENERATED EXCEPTION!", UseExceptionHandler.Null)]
         [DataRow("exception", "like:[throw:System.ApplicationException: THIS IS TEST-GENERATED EXCEPTION!", UseExceptionHandler.Throwing)]
@@ -112,7 +112,7 @@ namespace Tests
                     else
                         contains = output.Contains(pattern);
 
-                    Assert.IsTrue(contains, $"Output {(expectedContains ? "does not contain" : "contains")} '{pattern}'\n\nOutput:\n{Out}\n");
+                    Assert.IsTrue(contains == expectedContains, $"Output {(expectedContains ? "does not contain" : "contains")} '{pattern}'\n\nOutput:\n{Out}\n");
                 }
                 finally
                 {
