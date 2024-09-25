@@ -22,7 +22,7 @@ Since this project is based on the [System.CommandLine](https://learn.microsoft.
 ## Main method  
 Normally, the `Main` method is the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. This means that if you include your own `Main` function in the program, it will **not** be invoked. If you need some initialization code to run before command, it can be placed in [Startup](#startup) method. 
 
-If you really need to use your own `Main()`
+If you really need to use your own `Main`, you can still do so:
 1. Add `<AutoGenerateEntryPoint>false</AutoGenerateEntryPoint>` property into your program .csproj file
 2. Call SnapCLI from your `Main()` method as follows
     ```csharp
@@ -377,7 +377,7 @@ class Sample
 ```
 
 ## Startup
-You may declare a method to perform additional initialization using `[Startup]` attribute. This method will be executed before command line is parsed.
+You may declare a method to perform additional initialization using `[Startup]` attribute. This method will be executed before command line is parsed. The startup method is recognized by its attribute rather than its name; in other words, you can name it anything you like.
 
 ```csharp
 [Startup]
@@ -404,6 +404,25 @@ public static void Startup(CommandLineBuilder commandLineBuilder)
 }
 ```
 
+## Exception handling
+To catch unhandled exceptions during command execution you may set exception handler in [Startup](#startup) method. The handler is intended to provide diagnostics according to the need of your application. The return value from handler will be used as program's exit code. For example:
+
+```
+[Startup]
+public static void Startup()
+{
+    CLI.ExceptionHandler = (exception) => {
+        if (exception is not OperationCanceledException)
+        {
+            var color = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine(exception.ToString());
+            Console.ForegroundColor = color;
+        }
+        return 1; // exit code
+    };
+}
+```
 
 # .Net framework support
 Supported frameworks can be found on the [SnapCLI NuGet page](https://www.nuget.org/packages/SnapCLI#supportedframeworks-body-tab). The goal is to maintain the same level of support as the System.CommandLine library.
