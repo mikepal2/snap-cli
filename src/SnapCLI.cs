@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
 namespace SnapCLI
@@ -241,7 +242,7 @@ namespace SnapCLI
     }
 
     /// <summary>
-    /// Declares configuration method for CLI. The method must be public static and receive single argument of type <see cref="CommandLineBuilder"/>.
+    /// Declares configuration method for CLI. The method must be public static and may have no parameters or one parameter of type <see cref="CommandLineBuilder"/>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class StartupAttribute : Attribute
@@ -355,10 +356,22 @@ namespace SnapCLI
         /// <param name="output">Redirect output stream</param>
         /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) {
-            var parseResult = Parser.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
-            return parseResult.Invoke(ConsoleHelper.CreateOrDefault(output, error));
+        public static int Run(string[]? args = null, TextWriter? output = null, TextWriter? error = null) 
+        {
+            try
+            {
+                _error = error;
+                var parseResult = Parser.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+                return parseResult.Invoke(ConsoleHelper.CreateOrDefault(output, error));
             }
+            catch (Exception ex)
+            {
+                if (ExceptionHandler != null)
+                    return ExceptionHandler(ex);
+                ExceptionDispatchInfo.Capture(ex).Throw();
+                return 1;
+            }
+        }
 
         /// <summary>
         /// Helper asynchronous method to run CLI application. Should be called from program async Main() entry point.
@@ -367,12 +380,27 @@ namespace SnapCLI
         /// <param name="output">Redirect output stream</param>
         /// <param name="error">Redirect error stream</param>
         /// <returns></returns>
-        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null) => await Parser.InvokeAsync(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray(), ConsoleHelper.CreateOrDefault(output, error));
+        public static async Task<int> RunAsync(string[]? args = null, TextWriter? output = null, TextWriter? error = null)
+        {
+            try
+            {
+                _error = error;
+                var parseResult = Parser.Parse(args ?? Environment.GetCommandLineArgs().Skip(1).ToArray());
+                return await parseResult.InvokeAsync(ConsoleHelper.CreateOrDefault(output, error));
+            }
+            catch (Exception ex)
+            {
+                if (ExceptionHandler != null)
+                    return ExceptionHandler(ex);
+                ExceptionDispatchInfo.Capture(ex).Throw();
+                return 1;
+            }
+        }
 
-        /// <summary>
-        /// Provides access to commands hierarchy and their options and arguments.
-        /// </summary>
-        public static Command RootCommand => Parser.Configuration.RootCommand;
+/// <summary>
+/// Provides access to commands hierarchy and their options and arguments.
+/// </summary>
+public static Command RootCommand => Parser.Configuration.RootCommand;
 
         /// <summary>
         /// Provides access to currently executing command definition.
@@ -382,6 +410,43 @@ namespace SnapCLI
             private set => _currentCommand = value; 
         }
         private static Command? _currentCommand = null;
+
+        /// <summary>
+        /// Handler to use when exception is occured during command execution. Set <code>null</code> to suppress exception handling.
+        /// </summary>
+        /// <returns>Returns exit code to return from program. It is strongly recommanded to return non-zero exit code on error.</returns>
+        public static Func<Exception, int>? ExceptionHandler { get; set; } = DefaultExceptionHandler;
+        private static TextWriter Error
+        {
+            get => _error ?? Console.Error;
+            set => _error = value;
+        }
+        private static TextWriter? _error;
+
+        private static int DefaultExceptionHandler(Exception exception)
+        {
+            switch (exception)
+            {
+                case OperationCanceledException _:
+                    break;
+
+                default:
+                    if (Error == Console.Error)
+                    {
+                        var color = Console.ForegroundColor;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Error.WriteLine(exception.ToString());
+                        Console.ForegroundColor = color;
+                    }
+                    else
+                    {
+                        Error.WriteLine(exception.ToString());
+                    }
+                    break;
+            }
+
+            return 1;
+        }
 
         /// <summary>
         /// Current command invocation context provides access to parsed command line, CancellationToken, ExitCode and other properties.
@@ -535,20 +600,52 @@ namespace SnapCLI
                 var _params = new object[] { builder };
                 foreach (var method in startupMethods)
                 {
-                    if (method.GetParameters().Length > 0)
+                    try
                     {
-                        useDefaults = false; // this startup method is responsible for builder configuration
-                        method.Invoke(null, new object[] { builder });
+                        if (method.GetParameters().Length > 0)
+                        {
+                            useDefaults = false; // this startup method is responsible for builder configuration
+                            method.Invoke(null, new object[] { builder });
+                        }
+                        else
+                        {
+                            method.Invoke(null, null);
+                        }
                     }
-                    else
+                    catch (TargetInvocationException ex) when (ex.InnerException != null)
                     {
-                        method.Invoke(null, null);
+                        ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                     }
                 }
             }
 
             if (useDefaults)
-                builder.UseDefaults();
+            {
+                // use all from .UseDefaults() except .UseExceptionHandler()
+                builder.UseVersionOption()
+                       .UseHelp()
+                       .UseEnvironmentVariableDirective()
+                       .UseParseDirective()
+                       .UseSuggestDirective()
+                       .RegisterWithDotnetSuggest()
+                       .UseTypoCorrections()
+                       .UseParseErrorReporting()
+                       .CancelOnProcessTermination();
+            }
+
+            // use our own exeception handlera
+            builder.UseExceptionHandler((ex, ctx) => {
+                if (ExceptionHandler == null)
+                    ExceptionDispatchInfo.Capture(ex).Throw();
+                else
+                    ctx.ExitCode = ExceptionHandler(ex); 
+            });
+
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                if (args.ExceptionObject is Exception ex)
+                    ExceptionHandler?.Invoke(ex);
+            };
 
             var parser = builder.Build();
 
@@ -738,19 +835,27 @@ namespace SnapCLI
                     }
                 }).ToArray();
 
-                BeforeCommand?.Invoke(ctx.ParseResult, command);
-                
-                var awatable = method.Invoke(null, _params)!;
+                object? awaitable = null;
+                try
+                {
+                    BeforeCommand?.Invoke(ctx.ParseResult, command);
 
-                AfterCommand?.Invoke(ctx.ParseResult, command);
+                    awaitable = method.Invoke(null, _params)!;
 
-                if (awatable == null)
+                    AfterCommand?.Invoke(ctx.ParseResult, command);
+                }
+                catch (TargetInvocationException ex) when (ex.InnerException != null)
+                {
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                }
+
+                if (awaitable == null)
                 {
                     ctx.ExitCode = 0;
                 }
                 else
                 {
-                    switch (awatable)
+                    switch (awaitable)
                     {
                         case Task<int> t:
                             ctx.ExitCode = await t;
