@@ -58,7 +58,6 @@ namespace Tests
         [DataRow("exception", "like:[exception:THIS IS TEST-GENERATED EXCEPTION!]*[exitCode:999]", UseExceptionHandler.Custom)]
         [DataRow("exception", "like:[unhandled:System.ApplicationException: THIS IS TEST-GENERATED EXCEPTION!", UseExceptionHandler.Null)]
         [DataRow("exception", "like:[throw:System.ApplicationException: THIS IS TEST-GENERATED EXCEPTION!", UseExceptionHandler.Throwing)]
-        [DataRow("exception", "like:[throw:System.Exception: Rethrowing*", UseExceptionHandler.Throwing)]
         [DataRow("exception", "like:[unhandled:System.Exception: Rethrowing", UseExceptionHandler.Throwing)]
         [DataRow("exitcode", "[exitCode:0]")]
         [DataRow("exitcode --exitCode 1", "[exitCode:1]")]

@@ -634,12 +634,12 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
             }
 
             // use our own exeception handlera
-            builder.UseExceptionHandler((ex, ctx) => {
+            /*builder.UseExceptionHandler((ex, ctx) => {
                 if (ExceptionHandler == null)
                     ExceptionDispatchInfo.Capture(ex).Throw();
                 else
                     ctx.ExitCode = ExceptionHandler(ex); 
-            });
+            });*/
 
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             {
