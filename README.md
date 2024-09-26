@@ -1,5 +1,6 @@
-The **SnapCLI** library provides a simple Command Line Interface (CLI) API. 
-It is built on top of the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library.
+# SnapCLI
+
+This library provides a simple Command Line Interface (CLI) API. It is built on top of the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library.
 
 # NuGet package
 The library is available in a NuGet package:
