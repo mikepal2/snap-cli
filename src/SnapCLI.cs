@@ -481,11 +481,9 @@ namespace SnapCLI
                                  BindingFlags.Instance |
                                  BindingFlags.DeclaredOnly;
 
-            var globalDescriptors = GetGlobalDescriptors(assembly, bindingFlags);
             var commandMethods = GetCommandMethods(assembly, bindingFlags);
 
             // test project calling CLI.Run() directly and it's commands are in calling assembly
-
             if (commandMethods.Count == 0)
             {
                 var callingAssembly = new StackTrace(1, false).GetFrames().Select(f => f.GetMethod()?.Module?.Assembly).FirstOrDefault(a => a != null && a != executingAssembly);
@@ -500,7 +498,7 @@ namespace SnapCLI
                 throw new InvalidOperationException("The CLI program must declare at least one method with [Command] or [RootCommand] attribute, see documentation https://github.com/mikepal2/snap-cli/blob/main/README.md");
 
             // create root command
-
+            var globalDescriptors = GetGlobalDescriptors(assembly, bindingFlags);
             RootCommand = CreateRootCommand(assembly, globalDescriptors, commandMethods, out var rootMethod);
 
             // add commands without handler methods, i.e. those declared with [Command] on class level

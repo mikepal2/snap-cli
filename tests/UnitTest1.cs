@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 namespace Tests
 {
+    [Command("level1cmd")]
     [TestClass]
     public class UnitTest1
     {
@@ -65,6 +66,8 @@ namespace Tests
         [DataRow("exitcodeasync", "[exitCode:0]")]
         [DataRow("exitcodeasync --exitCode 1", "[exitCode:1]")]
         [DataRow("exitcodeasync --exitCode -1", "[exitCode:-1]")]
+        [DataRow("level1cmd -?", "regex:Commands:\\s*level2cmd")]
+        [DataRow("level1cmd level2cmd", "[level2cmd()]")]
         public void TestCLI(string commandLine, string pattern, UseExceptionHandler useExceptionHandler = UseExceptionHandler.Default)
         {
             // synchronize tests
@@ -283,6 +286,13 @@ namespace Tests
         {
             return Task.FromResult(exitCode);
         }
+
+        [Command("level1cmd level2cmd")]
+        public static void level2cmd()
+        { 
+            TraceCommand();
+        }
+
 
 
         // https://stackoverflow.com/a/64236441
