@@ -782,11 +782,10 @@ namespace SnapCLI
             if (!method.IsStatic)
                 throw new AttributeUsageException($"Method {method.Name} declared as [Command] must be static");
 
-            // FIXME: generic type name is shown as Task`1 instead of Task<int>
             if (!SupportedReturnTypes.Any(t => t.IsAssignableFrom(method.ReturnType)))
-                throw new AttributeUsageException($"Method {method.Name} should return any of {string.Join(",", SupportedReturnTypes.Select(t => t.Name))}");
+                throw new AttributeUsageException($"Method {method.Name} return type must be one of {string.Join(", ", SupportedReturnTypes.Select(t => GetFullTypeName(t)))}.");
 
-            var paramInfo = new List<Symbol>();
+             var paramInfo = new List<Symbol>();
 
             foreach (var param in method.GetParameters())
             {
@@ -881,6 +880,18 @@ namespace SnapCLI
             });
         }
 
+        private static string GetFullTypeName(Type type)
+        {
+            if (type.IsGenericType)
+            {
+                string genericArguments = type.GetGenericArguments()
+                                    .Select(x => x.Name)
+                                    .Aggregate((x1, x2) => $"{x1}, {x2}");
+                return $"{type.Name.Substring(0, type.Name.IndexOf("`"))}"
+                     + $"<{genericArguments}>";
+            }
+            return type.Name;
+        }
         private static Option CreateOption(DescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
         {
             var genericType = typeof(Option<>).MakeGenericType(new[] { valueType });
