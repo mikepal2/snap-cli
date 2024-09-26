@@ -73,8 +73,6 @@ namespace Tests
             // synchronize tests
             lock (Out)
             {
-                CLI.RootCommand.HasAlias("a"); // force init on first test
-
                 var defaultExceptionHandler = CLI.ExceptionHandler;
                 try
                 {

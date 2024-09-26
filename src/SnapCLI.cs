@@ -242,6 +242,20 @@ namespace SnapCLI
     }
 
     /// <summary>
+    /// This exception describes incorrect usage of CLI attributes. It is thrown during CLI initialization if any errors in attribute usage are detected.
+    /// </summary>
+    public class AttributeUsageException : Exception {
+        /// <summary>
+        /// Initializes a new instance of the SnapCLI.AttributeUsageException class.
+        /// </summary>
+        public AttributeUsageException() : base() { }
+        /// <summary>
+        /// Initializes a new instance of the SnapCLI.AttributeUsageException class with a specified error message.
+        /// </summary>
+        public AttributeUsageException(string message) : base(message) { }
+    }
+
+    /// <summary>
     /// Declares configuration method for CLI. The method must be public static and may have no parameters or one parameter of type <see cref="CommandLineBuilder"/>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
@@ -464,14 +478,20 @@ namespace SnapCLI
                 ExceptionDispatchInfo.Capture(ex).Throw();
                 return 1;
             }
-        }        
+        }
 
         /// <summary>
         /// Static constructor, initializes commands hierarchy from attributes.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Attribute usage error detected.</exception>
+        /// <exception cref="AttributeUsageException">Attribute usage error detected.</exception>
         static CLI()
         {
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                if (ExceptionHandler != null && args.ExceptionObject is Exception ex)
+                    Environment.ExitCode = ExceptionHandler.Invoke(ex);
+            };
+
             Assembly executingAssembly = Assembly.GetExecutingAssembly();
             Assembly assembly = Assembly.GetEntryAssembly() ?? executingAssembly;
 
@@ -495,7 +515,7 @@ namespace SnapCLI
             }
 
             if (commandMethods.Count == 0)
-                throw new InvalidOperationException("The CLI program must declare at least one method with [Command] or [RootCommand] attribute, see documentation https://github.com/mikepal2/snap-cli/blob/main/README.md");
+                throw new AttributeUsageException("The CLI program must declare at least one method with [Command] or [RootCommand] attribute, see documentation https://github.com/mikepal2/snap-cli/blob/main/README.md");
 
             // create root command
             var globalDescriptors = GetGlobalDescriptors(assembly, bindingFlags);
@@ -518,9 +538,9 @@ namespace SnapCLI
                 .Select(x => (x.prop, x.desc!)))
             {
                 if (!prop.CanWrite)
-                    throw new InvalidOperationException($"Property {prop.Name} declared as [Option] must be writable");
+                    throw new AttributeUsageException($"Property {prop.Name} declared as [Option] must be writable");
                 if (!prop.SetMethod?.IsStatic == null)
-                    throw new InvalidOperationException($"Property {prop.Name} declared as [Option] must be static");
+                    throw new AttributeUsageException($"Property {prop.Name} declared as [Option] must be static");
                 var opt = CreateOption(desc, prop.Name, prop.PropertyType, () => prop.GetValue(null));
                 RootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => prop.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
@@ -533,9 +553,9 @@ namespace SnapCLI
                 .Select(x => (x.field, x.desc!)))
             {
                 if (field.IsInitOnly)
-                    throw new InvalidOperationException($"Field {field.Name} declared as [Option] must be writable");
+                    throw new AttributeUsageException($"Field {field.Name} declared as [Option] must be writable");
                 if (!field.IsStatic)
-                    throw new InvalidOperationException($"Field {field.Name} declared as [Option] must be static");
+                    throw new AttributeUsageException($"Field {field.Name} declared as [Option] must be static");
                 var opt = CreateOption(desc, field.Name, field.FieldType, () => field.GetValue(null));
                 RootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => field.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
@@ -576,7 +596,7 @@ namespace SnapCLI
 
             foreach (var command in parentCommands)
                 if (command.Subcommands.Count == 0 && command.Handler == null && command.IsHidden == false)
-                    throw new InvalidOperationException($"Command '{command.Name}' has no subcommands nor handler methods");
+                    throw new AttributeUsageException($"Command '{command.Name}' has no subcommands nor handler methods");
 
             var builder = new CommandLineBuilder(RootCommand);
 
@@ -623,20 +643,6 @@ namespace SnapCLI
                        .CancelOnProcessTermination();
             }
 
-            // use our own exeception handlera
-            /*builder.UseExceptionHandler((ex, ctx) => {
-                if (ExceptionHandler == null)
-                    ExceptionDispatchInfo.Capture(ex).Throw();
-                else
-                    ctx.ExitCode = ExceptionHandler(ex); 
-            });*/
-
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
-            {
-                if (args.ExceptionObject is Exception ex)
-                    ExceptionHandler?.Invoke(ex);
-            };
-
             Parser = builder.Build();
         }
 
@@ -654,7 +660,7 @@ namespace SnapCLI
                                   .Select(m =>
                                   {
                                       if (m.GetCustomAttributes<DescriptorAttribute>().Count() > 1)
-                                          throw new InvalidOperationException($"Method {m.Name} has multiple [Command] attributes declared");
+                                          throw new AttributeUsageException($"Method {m.Name} has multiple [Command] attributes declared");
                                       return new { method = m, desc = m.GetCustomAttribute<DescriptorAttribute>() };
                                   })
                                   .Where(m => m.desc != null)
@@ -674,7 +680,7 @@ namespace SnapCLI
             {
                 var attributeName = typeof(T).Name.Replace("Attrubute", "");
                 if (!method.IsStatic)
-                    throw new InvalidOperationException($"Method {method.Name} declared as [{attributeName}] must be static");
+                    throw new AttributeUsageException($"Method {method.Name} declared as [{attributeName}] must be static");
 
                 if (!ValidateParams(method, paramTypes, paramsAreOptional))
                 {
@@ -682,7 +688,7 @@ namespace SnapCLI
                     methodDefinition += string.Join(", ", paramTypes.Select(t => (paramsAreOptional ? "[" : "") + t.Name));
                     methodDefinition += paramsAreOptional ? new string(']', paramTypes.Length) : "";
                     methodDefinition += " { ... }";
-                    throw new InvalidOperationException($"Method {method.Name} declared as [{attributeName}] must be of type: {methodDefinition}");
+                    throw new AttributeUsageException($"Method {method.Name} declared as [{attributeName}] must be of type: {methodDefinition}");
                 }
             }
 
@@ -711,7 +717,7 @@ namespace SnapCLI
             DescriptorAttribute? rootDescriptor = null;
 
             if (rootDescriptorsCount > 1)
-                throw new InvalidOperationException($"Only one [RootCommand] attribute may be declared, found {rootDescriptorsCount}");
+                throw new AttributeUsageException($"Only one [RootCommand] attribute may be declared, found {rootDescriptorsCount}");
 
             if (globalRootDescriptors.Any())
                 rootDescriptor = globalDescriptors.First();
@@ -730,8 +736,11 @@ namespace SnapCLI
 
         private static Command CreateAndAddCommand(RootCommand rootCommand, string name, DescriptorAttribute desc)
         {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Valid command name is required", nameof(name));
+
             if (desc.Kind != DescriptorAttribute.DescKind.Command)
-                throw new InvalidOperationException($"Unexpected descriptor type {desc.Kind} for the command");
+                throw new ArgumentException($"Unexpected descriptor type {desc.Kind} for the command");
 
             var subcommandNames = name.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             Command parentCommand = rootCommand;
@@ -749,10 +758,10 @@ namespace SnapCLI
                 }
                 parentCommand = command;
             }
-            if (command == null)
-                throw new InvalidOperationException();
+            if (command == null) // this is to satisfy compiler, in fact command cannot be null here because we already checked that name is not empty and we either found existing or created new command
+                throw new InvalidOperationException(); 
             if (!created)
-                throw new InvalidOperationException($"Command '{name}' has multiple [Command] definitions");
+                throw new AttributeUsageException($"Command '{name}' has multiple [Command] definitions");
             if (desc.Aliases != null)
                 foreach (var alias in desc.Aliases)
                     command.AddAlias(alias);
@@ -768,14 +777,14 @@ namespace SnapCLI
         private static void AddCommandHandler(Command command, MethodInfo method, Action<InvocationContext>[] globalOptionsInitializers)
         {
             if (command.Handler != null)
-                throw new InvalidOperationException($"Command '{command.Name}' has multiple handler methods");
+                throw new AttributeUsageException($"Command '{command.Name}' has multiple handler methods");
 
             if (!method.IsStatic)
-                throw new InvalidOperationException($"Method {method.Name} declared as [Command] must be static");
+                throw new AttributeUsageException($"Method {method.Name} declared as [Command] must be static");
 
             // FIXME: generic type name is shown as Task`1 instead of Task<int>
             if (!SupportedReturnTypes.Any(t => t.IsAssignableFrom(method.ReturnType)))
-                throw new InvalidOperationException($"Method {method.Name} should return any of {string.Join(",", SupportedReturnTypes.Select(t => t.Name))}");
+                throw new AttributeUsageException($"Method {method.Name} should return any of {string.Join(",", SupportedReturnTypes.Select(t => t.Name))}");
 
             var paramInfo = new List<Symbol>();
 
