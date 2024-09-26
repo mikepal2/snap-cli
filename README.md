@@ -6,7 +6,9 @@ The library is available in a NuGet package:
 - [SnapCLI](https://www.nuget.org/packages/SnapCLI/)
 
 # Motivation
- The goal of this project is to provide a simple and effective way to handle command-line commands and parameters, allowing developers to create POSIX-like CLI applications with minimal hassle in parsing the command line and enabling them to focus on application logic. Additionally, it facilitates providing all necessary information for the application's help system, making it easily accessible to end users. The [DragonFruit](https://github.com/dotnet/command-line-api/blob/main/docs/DragonFruit-overview.md) project was a step in this direction, but is very limited in abilities it provides.
+The goal of this project is to enable developers to create POSIX-like Command Line Interface (CLI) applications without the need to parse the command line themselves, allowing them to focus on application logic. The library automatically handles command-line commands and parameters using the provided metadata, simplifying the development process. It also streamlines the creation of the application's help system, ensuring that all necessary information is easily accessible to end users.
+ 
+ The [DragonFruit](https://github.com/dotnet/command-line-api/blob/main/docs/DragonFruit-overview.md) project was a step in this direction, but is very limited in abilities it provides.
 
 # API Paradigm
 The API paradigm of this project is to use [attributes](https://learn.microsoft.com/en-us/dotnet/csharp/advanced-topics/reflection-and-attributes/) to declare and describe CLI commands, options, and arguments.
@@ -14,13 +16,15 @@ The API paradigm of this project is to use [attributes](https://learn.microsoft.
 Any public static method can be declared as a CLI command handler using the `[Command]` attribute, and effectively represent an entry point to the CLI application for that command. Any parameter of command handler method automatically becomes a command option. See the [usage](#usage) section and examples below for more details.
 
 ## What about classes?
-There are multiple CLI frameworks that require separate class implementation for each command. In my opinion, creating a per-command classes adds unnecessary bloat to the code with little to no benefit. To provide additional information such as descriptions and aliases, attributes are anyway required on top of the class declaration. Since the goal is to simplify things as much as possible, I decided not to use classes at all in my approach. While this approach may not be as flexible as some other solutions, it meets the basic needs of most CLI applications. 
+Many CLI frameworks require separate class implementations for each command. In my opinion, creating individual classes for each command adds unnecessary bloat to the code with minimal benefit. Using attributes is easier to maintain and understand, as they are declared close to the entities they describe, keeping all related information in one place. Additionally, attributes allow for extra details, such as descriptions and aliases. Since the goal is to simplify the implementation as much as possible, I decided not to use classes at all in my approach. While this method may not be as flexible as some other solutions, it effectively meets the needs of most CLI applications.
 
 ## Command line syntax
 Since this project is based on the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library, the parsing rules are exactly the same as those for that package. The Microsoft documentation provides detailed explanations of the [command-line syntax](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) recognized by `System.CommandLine`. I will include more links to this documentation throughout the text below.
 
 ## Main method  
-Normally, the `Main` method is the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. This means that if you include your own `Main` function in the program, it will **not** be invoked. If you need some initialization code to run before command, it can be placed in [Startup](#startup) method. 
+Typically, the `Main` method serves as the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. This means you don't need to write any startup boilerplate code for your CLI application and can dive straight into implementing the application logic, i.e. commands.
+
+It’s important to note that since the library overrides the entry point, if you include your own `Main` function in the program, it will **not** be invoked. If you need some initialization code to run before command, it can be placed in [Startup](#startup) method. 
 
 If you really need to use your own `Main`, you can still do so:
 1. Add `<AutoGenerateEntryPoint>false</AutoGenerateEntryPoint>` property into your program .csproj file
@@ -206,7 +210,7 @@ Options:
 
 **Argument name convention**
 - Argument name is used only for help, it cannot be specified on command line.
-- If argument name is not explicitly specified in the attribute, the  name of the parameter will be implicitly used.
+- If argument name is not explicitly specified in the attribute, the name of the parameter will be implicitly used.
 
 You can provide options before arguments or arguments before options on the command line. See [documentation](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#order-of-options-and-arguments) for details.
 
@@ -216,7 +220,7 @@ The [arity](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax
 ```csharp
 [Command(name: "print", description: "Arity example")]
 public static void Print(
-    [Argument(arityMin:1, arityMax:2, name:"numbers", description:"Takes 1 or 2 numbers")]
+    [Argument(name:"numbers", arityMin:1, arityMax:2, description:"Takes 1 or 2 numbers")]
     int[] nums
 )
 {
@@ -404,21 +408,33 @@ public static void Startup(CommandLineBuilder commandLineBuilder)
 }
 ```
 
-## Exception handling
-To catch unhandled exceptions during command execution you may set exception handler in [Startup](#startup) method. The handler is intended to provide diagnostics according to the need of your application. The return value from handler will be used as program's exit code. For example:
+The `CLI.RootCommand` property is available in startup method and commands could be additionaly customized by startup code. 
 
-```
+**Important**: When the startup method is invoked, the command line has not been parsed yet; therefore, global parameters still have their default values and not the values from the command line.
+
+## Exception handling
+To catch unhandled exceptions during command execution you may set exception handler in [Startup](#startup) method. The handler is intended to provide exception diagnostics according to the need of your application before exiting. The return value from handler will be used as program's exit code. For example:
+
+```csharp
 [Startup]
 public static void Startup()
 {
     CLI.ExceptionHandler = (exception) => {
-        if (exception is not OperationCanceledException)
-        {
-            var color = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine(exception.ToString());
-            Console.ForegroundColor = color;
+        var color = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Red;
+        if (exception is OperationCanceledException)
+        {   // special case
+            Console.Error.WriteLine("Operation cancelled!");
         }
+        else if (g_debugMode)
+        {   // show detailed exception info in debug mode
+            Console.Error.WriteLine(exception.ToString());
+        }
+        else 
+        {   // show short error message during normal run
+            Console.Error.WriteLine($"Error: {exception.Message}");
+        }
+        Console.ForegroundColor = color;
         return 1; // exit code
     };
 }

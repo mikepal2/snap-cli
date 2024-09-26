@@ -127,7 +127,7 @@ namespace Tests
 
         private static void TraceCommand(params object?[] args)
         {
-            Out.WriteLine($"[{CLI.CurrentCommand.Name}({string.Join(",", args)})]");
+            Out.WriteLine($"[{CLI.CurrentCommand?.Name}({string.Join(",", args)})]");
         }
 
         private static int CustomExceptionHandler(Exception exception)

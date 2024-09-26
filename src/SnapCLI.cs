@@ -346,8 +346,77 @@ namespace SnapCLI
         /// </summary>
         public static event AfterCommandCallback? AfterCommand;
 
-        private static Parser? _parser;
-        private static Parser Parser => _parser ??= BuildCommands();
+        private static Parser Parser { get; }
+
+        /// <summary>
+        /// Provides access to commands hierarchy and their options and arguments.
+        /// </summary>
+        public static RootCommand RootCommand { get; }
+
+        /// <summary>
+        /// Provides access to currently executing command definition.
+        /// </summary>
+        public static Command? CurrentCommand;
+        /// <summary>
+        /// Handler to use when exception is occured during command execution. Set <code>null</code> to suppress exception handling.
+        /// </summary>
+        /// <returns>Returns exit code to return from program. It is strongly recommanded to return non-zero exit code on error.</returns>
+        public static Func<Exception, int>? ExceptionHandler { get; set; } = DefaultExceptionHandler;
+        private static TextWriter Error
+        {
+            get => _error ?? Console.Error;
+            set => _error = value;
+        }
+        private static TextWriter? _error;
+
+        private static int DefaultExceptionHandler(Exception exception)
+        {
+            switch (exception)
+            {
+                case OperationCanceledException _:
+                    break;
+
+                default:
+                    if (Error == Console.Error)
+                    {
+                        var color = Console.ForegroundColor;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Error.WriteLine(exception.ToString());
+                        Console.ForegroundColor = color;
+                    }
+                    else
+                    {
+                        Error.WriteLine(exception.ToString());
+                    }
+                    break;
+            }
+
+            return 1;
+        }
+
+        /// <summary>
+        /// Current command invocation context provides access to parsed command line, CancellationToken, ExitCode and other properties.
+        /// </summary>
+        public static InvocationContext? CurrentContext;
+
+#if BEFORE_AFTER_COMMAND_ATTRIBUTE
+        private static MethodInfo[]? _beforeCommandsCallbacks;
+        private static MethodInfo[]? _afterCommandsCallbacks;
+#endif
+
+        private class CommandMethodDesc
+        {
+            public string CommandName;
+            public DescriptorAttribute Desc;
+            public MethodInfo Method;
+
+            public CommandMethodDesc(MethodInfo method, DescriptorAttribute desc)
+            {
+                Method = method;
+                Desc = desc;
+                CommandName = desc.Name ?? method.Name.ToLower().Replace('_', ' ');
+            }
+        }
 
         /// <summary>
         /// Helper method to run CLI application. Should be called from program Main() entry point.
@@ -395,90 +464,13 @@ namespace SnapCLI
                 ExceptionDispatchInfo.Capture(ex).Throw();
                 return 1;
             }
-        }
-
-/// <summary>
-/// Provides access to commands hierarchy and their options and arguments.
-/// </summary>
-public static Command RootCommand => Parser.Configuration.RootCommand;
+        }        
 
         /// <summary>
-        /// Provides access to currently executing command definition.
+        /// Static constructor, initializes commands hierarchy from attributes.
         /// </summary>
-        public static Command CurrentCommand { 
-            get => _currentCommand ?? throw new InvalidOperationException($"Cannot access {nameof(CurrentCommand)} from outside of CLI command handler method"); 
-            private set => _currentCommand = value; 
-        }
-        private static Command? _currentCommand = null;
-
-        /// <summary>
-        /// Handler to use when exception is occured during command execution. Set <code>null</code> to suppress exception handling.
-        /// </summary>
-        /// <returns>Returns exit code to return from program. It is strongly recommanded to return non-zero exit code on error.</returns>
-        public static Func<Exception, int>? ExceptionHandler { get; set; } = DefaultExceptionHandler;
-        private static TextWriter Error
-        {
-            get => _error ?? Console.Error;
-            set => _error = value;
-        }
-        private static TextWriter? _error;
-
-        private static int DefaultExceptionHandler(Exception exception)
-        {
-            switch (exception)
-            {
-                case OperationCanceledException _:
-                    break;
-
-                default:
-                    if (Error == Console.Error)
-                    {
-                        var color = Console.ForegroundColor;
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Error.WriteLine(exception.ToString());
-                        Console.ForegroundColor = color;
-                    }
-                    else
-                    {
-                        Error.WriteLine(exception.ToString());
-                    }
-                    break;
-            }
-
-            return 1;
-        }
-
-        /// <summary>
-        /// Current command invocation context provides access to parsed command line, CancellationToken, ExitCode and other properties.
-        /// </summary>
-        public static InvocationContext CurrentContext => _currentContext ?? throw new InvalidOperationException($"Cannot access {nameof(CurrentContext)} from outside of command handler method");
-        private static InvocationContext? _currentContext;
-
-#if BEFORE_AFTER_COMMAND_ATTRIBUTE
-        private static MethodInfo[]? _beforeCommandsCallbacks;
-        private static MethodInfo[]? _afterCommandsCallbacks;
-#endif
-
-        private class CommandMethodDesc
-        {
-            public string CommandName;
-            public DescriptorAttribute Desc;
-            public MethodInfo Method;
-
-            public CommandMethodDesc(MethodInfo method, DescriptorAttribute desc)
-            {
-                Method = method;
-                Desc = desc;
-                CommandName = desc.Name ?? method.Name.ToLower().Replace('_', ' ');
-            }
-        }
-
-        /// <summary>
-        /// Builds commands hierarchy based on attributes.
-        /// </summary>
-        /// <returns>Returns <see cref="Parser"></see></returns>
-        /// <exception cref="InvalidOperationException">Commands hierarchy already built or there are attributes usage errors detected.</exception>
-        private static Parser BuildCommands()
+        /// <exception cref="InvalidOperationException">Attribute usage error detected.</exception>
+        static CLI()
         {
             Assembly executingAssembly = Assembly.GetExecutingAssembly();
             Assembly assembly = Assembly.GetEntryAssembly() ?? executingAssembly;
@@ -509,12 +501,12 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
 
             // create root command
 
-            RootCommand rootCommand = CreateRootCommand(assembly, globalDescriptors, commandMethods, out var rootMethod);
+            RootCommand = CreateRootCommand(assembly, globalDescriptors, commandMethods, out var rootMethod);
 
             // add commands without handler methods, i.e. those declared with [Command] on class level
 
             var parentCommands = globalDescriptors.Where(d => d.Kind == DescriptorAttribute.DescKind.Command)
-                .Select(desc => CreateAndAddCommand(rootCommand, desc.Name!, desc))
+                .Select(desc => CreateAndAddCommand(RootCommand, desc.Name!, desc))
                 .ToArray();
 
             // add properties and fields described with [Option]
@@ -532,7 +524,7 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
                 if (!prop.SetMethod?.IsStatic == null)
                     throw new InvalidOperationException($"Property {prop.Name} declared as [Option] must be static");
                 var opt = CreateOption(desc, prop.Name, prop.PropertyType, () => prop.GetValue(null));
-                rootCommand.AddGlobalOption(opt);
+                RootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => prop.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
             }
 
@@ -547,7 +539,7 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
                 if (!field.IsStatic)
                     throw new InvalidOperationException($"Field {field.Name} declared as [Option] must be static");
                 var opt = CreateOption(desc, field.Name, field.FieldType, () => field.GetValue(null));
-                rootCommand.AddGlobalOption(opt);
+                RootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => field.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
             }
 
@@ -572,13 +564,13 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
 #endif
 
             if (rootMethod != null)
-                AddCommandHandler(rootCommand, rootMethod.Method, globalOptionsInitializers);
+                AddCommandHandler(RootCommand, rootMethod.Method, globalOptionsInitializers);
 
             foreach (var m in commandMethods
                 .Where(m => m.Desc.Kind == DescriptorAttribute.DescKind.Command && m != rootMethod)
                 .OrderBy(m => m.CommandName.Length)) // sort by name length to ensure parent commands created before subcommands
             {
-                var command = CreateAndAddCommand(rootCommand, m.CommandName, m.Desc);
+                var command = CreateAndAddCommand(RootCommand, m.CommandName, m.Desc);
                 AddCommandHandler(command, m.Method, globalOptionsInitializers);
             }
 
@@ -588,7 +580,7 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
                 if (command.Subcommands.Count == 0 && command.Handler == null && command.IsHidden == false)
                     throw new InvalidOperationException($"Command '{command.Name}' has no subcommands nor handler methods");
 
-            var builder = new CommandLineBuilder(rootCommand);
+            var builder = new CommandLineBuilder(RootCommand);
 
             // call [Startup] methods
 
@@ -647,9 +639,7 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
                     ExceptionHandler?.Invoke(ex);
             };
 
-            var parser = builder.Build();
-
-            return parser;
+            Parser = builder.Build();
         }
 
         // find [RootCommand] and [Command] attributes declared on class
@@ -816,8 +806,8 @@ public static Command RootCommand => Parser.Configuration.RootCommand;
 
             command.SetHandler(async (ctx) =>
             {
-                _currentCommand = command;
-                _currentContext = ctx;
+                CurrentCommand = command;
+                CurrentContext = ctx;
 
                 foreach (var initializer in globalOptionsInitializers)
                     initializer.Invoke(ctx);
