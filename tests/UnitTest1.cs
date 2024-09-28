@@ -1,6 +1,7 @@
 using SnapCLI;
 using System.CommandLine;
 using System.CommandLine.Builder;
+using System.CommandLine.Parsing;
 using System.Text;
 using System.Text.RegularExpressions;
 namespace Tests
@@ -167,9 +168,9 @@ namespace Tests
         [Startup]
         public static void Stratup2()
         {
-            CLI.BeforeCommand += (parseResult, command) => { Out.WriteLine($"[before:{command.Name}]"); };
-            CLI.AfterCommand += (parseResult, command) => { Out.WriteLine($"[after:{command.Name}]"); };
-            
+            CLI.BeforeCommand += (parseResult) => { Out.WriteLine($"[before:{parseResult.CommandResult.Command.Name}]"); };
+            CLI.AfterCommand += (parseResult) => { Out.WriteLine($"[after:{parseResult.CommandResult.Command.Name}]"); };
+
             CLI.ExceptionHandler = (exception) => {
                 // 
                 if (exception is not OperationCanceledException)

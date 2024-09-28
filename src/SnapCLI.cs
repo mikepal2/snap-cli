@@ -340,8 +340,7 @@ namespace SnapCLI
         /// Delegate type for event handler invoked before command is executed
         /// </summary>
         /// <param name="parseResult">Command line parsing result</param>
-        /// <param name="command">Command that will be executed</param>
-        public delegate void BeforeCommandCallback(ParseResult parseResult, Command command);
+        public delegate void BeforeCommandCallback(ParseResult parseResult);
 
         /// <summary>
         /// Event invoked immediately before command is executed. Can be used for custom initialization.
@@ -352,8 +351,7 @@ namespace SnapCLI
         /// Delegate type for event handler invoked after command is executed
         /// </summary>
         /// <param name="parseResult">Command line parsing result</param>
-        /// <param name="command">Command that was executed</param>
-        public delegate void AfterCommandCallback(ParseResult parseResult, Command command);
+        public delegate void AfterCommandCallback(ParseResult parseResult);
 
         /// <summary>
         /// Event invoked immediately after command was executed. Can be used for deinitialization.
@@ -818,7 +816,7 @@ namespace SnapCLI
                 foreach (var initializer in globalOptionsInitializers)
                     initializer.Invoke(ctx);
 
-                var _params = paramInfo.Select(param =>
+                var methodParams = paramInfo.Select(param =>
                 {
                     switch (param)
                     {
@@ -831,35 +829,27 @@ namespace SnapCLI
                     }
                 }).ToArray();
 
-                object? awaitable = null;
                 try
                 {
-                    BeforeCommand?.Invoke(ctx.ParseResult, command);
+                    BeforeCommand?.Invoke(ctx.ParseResult);
 
-                    awaitable = method.Invoke(null, _params)!;
+                    var awaitable = method.Invoke(null, methodParams)!;
 
-                    AfterCommand?.Invoke(ctx.ParseResult, command);
-                }
-                catch (TargetInvocationException ex) when (ex.InnerException != null)
-                {
-                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-                }
-
-                if (awaitable == null)
-                {
-                    ctx.ExitCode = 0;
-                }
-                else
-                {
-                    switch (awaitable)
+                    if (awaitable == null)
                     {
-                        case Task<int> t:
-                            ctx.ExitCode = await t;
-                            break;
-                        case Task t:
-                            await t;
-                            ctx.ExitCode = 0;
-                            break;
+                        ctx.ExitCode = 0;
+                    }
+                    else
+                    {
+                        switch (awaitable)
+                        {
+                            case Task<int> t:
+                                ctx.ExitCode = await t;
+                                break;
+                            case Task t:
+                                await t;
+                                ctx.ExitCode = 0;
+                                break;
 #if NETCOREAPP2_0_OR_GREATER
                         case ValueTask<int> t:
                             ctx.ExitCode = await t;
@@ -869,13 +859,26 @@ namespace SnapCLI
                             ctx.ExitCode = 0;
                             break;
 #endif
-                        case int i:
-                            ctx.ExitCode = i;
-                            break;
-                        default:
-                            // should not be here because of SupportedReturnTypes check above
-                            throw new InvalidOperationException();
+                            case int i:
+                                ctx.ExitCode = i;
+                                break;
+                            default:
+                                // should not be here because of SupportedReturnTypes check above
+                                throw new InvalidOperationException();
+                        }
                     }
+
+                    // make exit code available to AfterCommand callback(s)
+                    Environment.ExitCode = ctx.ExitCode;
+
+                    AfterCommand?.Invoke(ctx.ParseResult);
+
+                    // AfterCommand callback(s) may change exit code
+                    ctx.ExitCode = Environment.ExitCode;
+                }
+                catch (TargetInvocationException ex) when (ex.InnerException != null)
+                {
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                 }
             });
         }
