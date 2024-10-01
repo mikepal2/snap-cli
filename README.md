@@ -17,10 +17,12 @@ The API paradigm of this project is to use [attributes](https://learn.microsoft.
 Any public static method can be declared as a CLI command handler using the `[Command]` attribute, and effectively represent an entry point to the CLI application for that command. Any parameter of command handler method automatically becomes a command option. See the [usage](#usage) section and examples below for more details.
 
 ## What about classes?
-Many CLI frameworks require separate class implementations for each command. In my opinion, creating individual classes for each command adds unnecessary bloat to the code with minimal benefit. Using attributes is easier to maintain and understand, as they are declared close to the entities they describe, keeping all related information in one place. Additionally, attributes allow for extra details, such as descriptions and aliases. Since the goal is to simplify the implementation as much as possible, I decided not to use classes at all in my approach. While this method may not be as flexible as some other solutions, it effectively meets the needs of most CLI applications.
+Many CLI frameworks require separate class implementations for each command. In my opinion, creating individual classes for each command adds unnecessary bloat to the code with minimal benefit. Using attributes is easier to maintain and understand, as they are declared close to the entities they describe, keeping all related information in one place. Additionally, attributes allow for extra details, such as descriptions and aliases. Since the goal is to simplify usage as much as possible, I decided to avoid using classes. While this approach may not be as flexible as some alternatives, it effectively meets the needs of most CLI applications. Additional customizations can be made with the [startup](#startup) code.
 
 ## Command line syntax
 Since this project is based on the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library, the parsing rules are exactly the same as those for that package. The Microsoft documentation provides detailed explanations of the [command-line syntax](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) recognized by `System.CommandLine`. I will include more links to this documentation throughout the text below.
+
+It is recommended to follow System.CommandLine [design guidance](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#design-guidance) when designing a CLI.
 
 ## Main method  
 Typically, the `Main` method serves as the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. This means you don't need to write any startup boilerplate code for your CLI application and can dive straight into implementing the application logic, i.e. commands.
@@ -84,9 +86,9 @@ public static async Task<int> Sleep(int milliseconds = 1000)
 
 - If the `[Command]` attribute does not specify a command name:
   - If this is the only command in the program, it is automatically treated as the [root command](#root-command).
-  - if there are multiple commands declared, the method name, converted to lower case, is used as the command name. For example, the method `Hello()` will handle the `hello` command.
-  - If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "list_orders()" will define a subcommand `orders` under the `list` command.
-- If the name specified in the [Command] attribute explicitly contains spaces, it declares a [subcommand](#subcommands). For example, `name:"list orders"` defines `orders` as a subcommand of the `list` command.
+  - If there are multiple commands declared, the method name, converted to [kebab case](https://en.wikipedia.org/wiki/Letter_case#Kebab_case), is used as the command name. For example, the method `Hello()` will handle the `hello` command, while method `HelloWorld()` will handle `hello-world` commmand.
+  - If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "order_create()" will define a subcommand `create` under the `order` command.
+- If the name specified in the `[Command]` attribute explicitly contains spaces, it declares a [subcommand](#subcommands). For example, `[Command(name:"order create")]` defines `create` as a subcommand of the `order` command.
 - Commands may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases). These are usually short forms that are easier to type or alternate spellings of a word.
 - Command names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
@@ -121,8 +123,8 @@ public static void Hello(
 Required options must be specified on the command line; otherwise, the program will show an error and display the command help. Method parameters that have default values (as in the examples above) are, by default, translated into options that are not required, while those without default values are always translated into required options. You may force option to be required using `required` parameter of the attribute.
 
 **Option name convention**
-- If option name is not explicitly specified in the attribute, or attribute is ommitted, the  name of the parameter will be implicitly used.
 - The option name is automatically prepended with a single dash (`-`) if it consists of a single letter, or with two dashes (`--`) if it is longer, unless it already starts with a dash.
+- If option name is not explicitly specified in the attribute, or attribute is ommitted, the  name of the parameter, converted to [kebab case](https://en.wikipedia.org/wiki/Letter_case#Kebab_case), will be used implicitly. For example, for the parameter `userId` the default option name will be `--user-id`.
 - Options may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases). These are usually short forms that are easier to type or alternate spellings of a word.
 - Option names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
@@ -159,7 +161,7 @@ Options:
   -?, -h, --help  Show help and usage information
 ```
 
-We may run the command without a parameter (default name `World` is used):
+We may run the command without a parameter (default name value `World` is used):
 ```text
 > sample hello
 Hello World!
@@ -211,7 +213,7 @@ Options:
 
 **Argument name convention**
 - Argument name is used only for help, it cannot be specified on command line.
-- If argument name is not explicitly specified in the attribute, the name of the parameter will be implicitly used.
+- If argument name is not explicitly specified in the attribute, the name of the parameter, converted to [kebab case](https://en.wikipedia.org/wiki/Letter_case#Kebab_case), will be used implicitly.
 
 You can provide options before arguments or arguments before options on the command line. See [documentation](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#order-of-options-and-arguments) for details.
 
@@ -229,7 +231,8 @@ public static void Print(
 }
 ```
 
-Output:
+<details>
+<summary>Sample output</summary>
 
 ```text
 > sample print -?
@@ -253,10 +256,11 @@ Numbers are: 12!
 > sample print 12 76
 Numbers are: 12,76!
 ```
+</details>
 
 ## Global options
-Any public static propety or field can be declared as global option with `[Option]` attribute.
-Global options are not required by default because properties and fields always have default values, either implicitly or explicitly. You can make a global option required by using the `required` parameter of the attribute.
+Any public static propety or field can be declared as global option using the `[Option]` attribute.
+By default, global options are not required because properties and fields always have default values, either implicitly or explicitly. You can make a global option required by using the `required` parameter of the attribute.
 
 ```csharp
 class Sample
@@ -280,9 +284,7 @@ class Sample
 ## Root command
 The [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands) is executed if program invoked without any known commands on the command line. If no handler is assigned for the root command, the CLI will indicate that the required command is not provided and display the help message. To assign a handler method for the root command, use the `[RootCommand]` attribute. Its usage is similar to the `[Command]` attribute, except that you cannot specify a command name. There can be only one method declared with `[RootCommand]` attribute.
 
-The description for the root command essentially serves as the program description in the help output, as shown when program is invoked with the `--help` parameter. If the root command is not declared, SnapCLI will use the assembly description as the root command description.
-
-As mentioned earlier, if a program has only one command handler method declared with `[Command]` attribute and the command name is not explicitly specified in the `name` parameter of the attribute, SnapCLI will automatically set this command as root command.
+The description for the root command essentially serves as the program description in the help output, as shown when program is invoked with the `--help` parameter. If the root command is not declared, **SnapCLI** library will use the assembly description as the root command description.
 
 ```csharp
 [RootCommand(description: "This command greets the world!")]
@@ -291,6 +293,8 @@ public static void Hello()
     Console.WriteLine("Hello World!");
 }
 ```
+
+> **_NOTE:_** If a program has only one command handler method declared with `[Command]` attribute and the command name is not explicitly specified in the `name` parameter of the attribute, **SnapCLI** library will automatically set this command as root command.
 
 ## Subcommands
 Any command may have multiple subcommands. As mentioned earlier, if command name includes spaces or if the name is not specified and the method name contains underscores, it will describe a [subcommand](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#subcommands). 
@@ -409,9 +413,9 @@ public static void Startup(CommandLineBuilder commandLineBuilder)
 }
 ```
 
-The `CLI.RootCommand` property is available in startup method and commands could be additionaly customized by startup code. 
+The `CLI.RootCommand` property, which provides access to the command hierarchy along with their options and arguments, is available in the startup code for further customization.
 
-**Important**: When the startup method is invoked, the command line has not been parsed yet; therefore, global parameters still have their default values and not the values from the command line.
+> **Important:** When the startup method is invoked, the command line has not been parsed yet; therefore, global parameters still have their default values and not the values from the command line.
 
 ## Exception handling
 To catch unhandled exceptions during command execution you may set exception handler in [Startup](#startup) method. The handler is intended to provide exception diagnostics according to the need of your application before exiting. The return value from handler will be used as program's exit code. For example:
@@ -446,4 +450,4 @@ Supported frameworks can be found on the [SnapCLI NuGet page](https://www.nuget.
 
 # License
 This project is licensed under the [MIT license](LICENSE.md).
-Parts of this project ([src/build/](src/build/)) borrowed with some modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT license](LICENSE-command-line-api.md).
+Some parts of this project are borrowed with modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT license](LICENSE-command-line-api.md).

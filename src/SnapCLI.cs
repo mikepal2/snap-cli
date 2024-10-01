@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace SnapCLI
@@ -426,7 +427,7 @@ namespace SnapCLI
             {
                 Method = method;
                 Desc = desc;
-                CommandName = desc.Name ?? method.Name.ToLower().Replace('_', ' ');
+                CommandName = desc.Name ?? method.Name.Replace('_', ' ').ToKebabCase();
             }
         }
 
@@ -898,7 +899,7 @@ namespace SnapCLI
         private static Option CreateOption(DescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
         {
             var genericType = typeof(Option<>).MakeGenericType(new[] { valueType });
-            var name = info.Name ?? memberName ?? throw new NotSupportedException($"Option name cannot be deduced from parameter [{info}], specify name explicitly");
+            var name = info.Name ?? memberName?.ToKebabCase() ?? throw new NotSupportedException($"Option name cannot be deduced from parameter [{info}], specify name explicitly");
             name = AddPrefix(name);
             Option instance = (Option)Activator.CreateInstance(genericType, new[] { name, info.Description })!;
             if (info.Arity.HasValue)
@@ -928,7 +929,7 @@ namespace SnapCLI
         private static Argument CreateArgument(DescriptorAttribute info, string? memberName, Type valueType, Func<object?>? getDefaultValue = null)
         {
             var genericType = typeof(Argument<>).MakeGenericType(new[] { valueType });
-            var name = info.Name ?? memberName ?? throw new NotSupportedException($"Argument name cannot be deduced from parameter [{info}], specify name explicitly");
+            var name = info.Name ?? memberName?.ToKebabCase() ?? throw new NotSupportedException($"Argument name cannot be deduced from parameter [{info}], specify name explicitly");
             Argument instance = (Argument)Activator.CreateInstance(genericType, new[] { name, info.Description })!;
             if (info.Arity.HasValue)
                 instance.Arity = info.Arity.Value;
@@ -940,5 +941,9 @@ namespace SnapCLI
             return instance;
         }
 
+        private static string ToKebabCase(this string str)
+        {
+            return Regex.Replace(str, @"([a-z])([A-Z][a-z])", "$1-$2").ToLower();
+        }
     }
 }
