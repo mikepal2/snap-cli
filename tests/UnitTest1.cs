@@ -129,7 +129,7 @@ namespace Tests
 
         private static void TraceCommand(params object?[] args)
         {
-            Out.WriteLine($"[{CLI.CurrentCommand?.Name}({string.Join(",", args)})]");
+            Out.WriteLine($"[{CLI.ParseResult.CommandResult.Command.Name}({string.Join(",", args)})]");
         }
 
         private static int CustomExceptionHandler(Exception exception)
@@ -168,8 +168,8 @@ namespace Tests
         [Startup]
         public static void Stratup2()
         {
-            CLI.BeforeCommand += (parseResult) => { Out.WriteLine($"[before:{parseResult.CommandResult.Command.Name}]"); };
-            CLI.AfterCommand += (parseResult) => { Out.WriteLine($"[after:{parseResult.CommandResult.Command.Name}]"); };
+            CLI.BeforeCommand += (args) => { Out.WriteLine($"[before:{args.ParseResult.CommandResult.Command.Name}]"); };
+            CLI.AfterCommand += (args) => { Out.WriteLine($"[after:{args.ParseResult.CommandResult.Command.Name}]"); };
 
             CLI.ExceptionHandler = (exception) => {
                 // 

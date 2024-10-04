@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SnapCLI
@@ -338,26 +339,59 @@ namespace SnapCLI
         }
 
         /// <summary>
-        /// Delegate type for event handler invoked before command is executed
+        /// Arguments for the BeforeCommand event.
         /// </summary>
-        /// <param name="parseResult">Command line parsing result</param>
-        public delegate void BeforeCommandCallback(ParseResult parseResult);
+        public class BeforeCommandEventArguments
+        {
+            /// <summary>
+            /// Command line parse result. 
+            /// </summary>
+            public ParseResult ParseResult;
+
+            /// <summary>
+            /// BeforeCommandEventArguments constructor.
+            /// </summary>
+            /// <param name="parseResult">Command line parse result.</param>
+            public BeforeCommandEventArguments(ParseResult parseResult) => ParseResult = parseResult;
+        }
 
         /// <summary>
         /// Event invoked immediately before command is executed. Can be used for custom initialization.
         /// </summary>
-        public static event BeforeCommandCallback? BeforeCommand;
+        public static event Action<BeforeCommandEventArguments>? BeforeCommand;
 
         /// <summary>
-        /// Delegate type for event handler invoked after command is executed
+        /// Arguments for AfterCommandEvent.
         /// </summary>
-        /// <param name="parseResult">Command line parsing result</param>
-        public delegate void AfterCommandCallback(ParseResult parseResult);
+        public class AfterCommandEventArguments
+        {
+            /// <summary>
+            /// Command line parse result.
+            /// </summary>
+            public ParseResult ParseResult;
+            
+            /// <summary>
+            /// Exit code to return from CLI program. The handler may change the exit code to reflect specific execution results.
+            /// </summary>
+            public int ExitCode;
+
+            /// <summary>
+            /// AfterCommandEventArguments constructor.
+            /// </summary>
+            /// <param name="parseResult">Command line parse result.</param>
+            /// <param name="exitCode">Exit code to return from CLI program.</param>
+            public AfterCommandEventArguments(ParseResult parseResult, int exitCode)
+            {
+                ParseResult = parseResult;
+                ExitCode = exitCode;
+            }
+
+        }
 
         /// <summary>
         /// Event invoked immediately after command was executed. Can be used for deinitialization.
         /// </summary>
-        public static event AfterCommandCallback? AfterCommand;
+        public static event Action<AfterCommandEventArguments>? AfterCommand;
 
         private static Parser Parser { get; }
 
@@ -367,14 +401,25 @@ namespace SnapCLI
         public static RootCommand RootCommand { get; }
 
         /// <summary>
-        /// Provides access to currently executing command definition.
-        /// </summary>
-        public static Command? CurrentCommand;
-        /// <summary>
         /// Handler to use when exception is occured during command execution. Set <code>null</code> to suppress exception handling.
         /// </summary>
         /// <returns>Returns exit code to return from program. It is strongly recommanded to return non-zero exit code on error.</returns>
         public static Func<Exception, int>? ExceptionHandler { get; set; } = DefaultExceptionHandler;
+
+        /// <summary>
+        /// Command line parse result.
+        /// </summary>
+        public static ParseResult ParseResult {
+            get { return _parseResult ?? throw new InvalidOperationException($"The {nameof(ParseResult)} property is not available before command line is parsed."); }
+            private set { _parseResult = value; }
+        }
+        private static ParseResult? _parseResult;
+
+        /// <summary>
+        /// Cancellation token for asynchronous CLI commands.
+        /// </summary>
+        public static CancellationToken CancellationToken { get; private set; } = CancellationToken.None;
+
         private static TextWriter Error
         {
             get => _error ?? Console.Error;
@@ -407,10 +452,6 @@ namespace SnapCLI
             return 1;
         }
 
-        /// <summary>
-        /// Current command invocation context provides access to parsed command line, CancellationToken, ExitCode and other properties.
-        /// </summary>
-        public static InvocationContext? CurrentContext;
 
 #if BEFORE_AFTER_COMMAND_ATTRIBUTE
         private static MethodInfo[]? _beforeCommandsCallbacks;
@@ -479,6 +520,34 @@ namespace SnapCLI
             }
         }
 
+        private static Dictionary<object, object> _bindings = new Dictionary<object, object>();
+
+        /// <summary>
+        /// The library using attributes on methods, properies, fields and parameters to create CommandLine parser commands, options and arguments. 
+        /// This method returns corresponding entity info (method, propery, field ot parameter) binded to specified CommandLine object.
+        /// </summary>
+        /// <param name="commandLineObject">One of CommandLine parser objects: <see cref="Command"/>, <see cref="Option"/> or <see cref="Argument"/>.</param>
+        /// <returns>The entity binded to CommandLine parser object <see cref="MethodInfo"/>, <see cref="PropertyInfo"/>, <see cref="FieldInfo"/> or <see cref="ParameterInfo"/>. Returns <code>null</code> if binding not found.</returns>
+        public static object? GetBinding(object commandLineObject)
+        {
+            if (_bindings.TryGetValue(commandLineObject, out var binding))
+                return binding;
+            else
+                return null;
+        }
+
+        /// <summary>
+        /// The library using attributes on methods, properies, fields and parameters to create CommandLine parser commands, options and arguments. 
+        /// This method returns <see cref="ICustomAttributeProvider"/> for corresponding entity (method, propery, field ot parameter) binded to specified CommandLine object.
+        /// Return binding CommandLine parser object to 
+        /// </summary>
+        /// <param name="commandLineObject">One of CommandLine parser objects: <see cref="Command"/>, <see cref="Option"/> or <see cref="Argument"/>.</param>
+        /// <returns>The entity binded to CommandLine parser object <see cref="MethodInfo"/>, <see cref="PropertyInfo"/>, <see cref="FieldInfo"/> or <see cref="ParameterInfo"/>. Returns <code>null</code> if binding not found.</returns>
+        public static ICustomAttributeProvider? GetBindingCustomAttributeProvider(object commandLineObject)
+        {
+            return GetBinding(commandLineObject) as ICustomAttributeProvider;
+        }
+
         /// <summary>
         /// Static constructor, initializes commands hierarchy from attributes.
         /// </summary>
@@ -519,6 +588,8 @@ namespace SnapCLI
             // create root command
             var globalDescriptors = GetGlobalDescriptors(assembly, bindingFlags);
             RootCommand = CreateRootCommand(assembly, globalDescriptors, commandMethods, out var rootMethod);
+            if (rootMethod != null)
+                _bindings.Add(RootCommand, rootMethod.Method);
 
             // add commands without handler methods, i.e. those declared with [Command] on class level
 
@@ -543,6 +614,7 @@ namespace SnapCLI
                 var opt = CreateOption(desc, prop.Name, prop.PropertyType, () => prop.GetValue(null));
                 RootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => prop.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
+                _bindings.Add(opt, prop);
             }
 
             foreach (var (field, desc) in assembly.GetTypes()
@@ -558,6 +630,7 @@ namespace SnapCLI
                 var opt = CreateOption(desc, field.Name, field.FieldType, () => field.GetValue(null));
                 RootCommand.AddGlobalOption(opt);
                 globalOptionsInitializersList.Add((ctx) => field.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
+                _bindings.Add(opt, field);
             }
 
             var globalOptionsInitializers = globalOptionsInitializersList.ToArray();
@@ -798,11 +871,13 @@ namespace SnapCLI
                         var option = CreateOption(info, param.Name, param.ParameterType, getDefaultValue);
                         command.AddOption(option);
                         paramInfo.Add(option);
+                        _bindings.Add(option, param);
                         break;
                     case DescriptorAttribute.DescKind.Argument:
                         var argument = CreateArgument(info, param.Name, param.ParameterType, getDefaultValue);
                         command.AddArgument(argument);
                         paramInfo.Add(argument);
+                        _bindings.Add(argument, param);
                         break;
                     default:
                         throw new InvalidOperationException();
@@ -811,8 +886,8 @@ namespace SnapCLI
 
             command.SetHandler(async (ctx) =>
             {
-                CurrentCommand = command;
-                CurrentContext = ctx;
+                ParseResult = ctx.ParseResult;
+                CancellationToken = ctx.GetCancellationToken();
 
                 foreach (var initializer in globalOptionsInitializers)
                     initializer.Invoke(ctx);
@@ -832,7 +907,8 @@ namespace SnapCLI
 
                 try
                 {
-                    BeforeCommand?.Invoke(ctx.ParseResult);
+                    var beforeCommandEventArguments = new BeforeCommandEventArguments(ctx.ParseResult);
+                    BeforeCommand?.Invoke(beforeCommandEventArguments);
 
                     var awaitable = method.Invoke(null, methodParams)!;
 
@@ -869,13 +945,11 @@ namespace SnapCLI
                         }
                     }
 
-                    // make exit code available to AfterCommand callback(s)
-                    Environment.ExitCode = ctx.ExitCode;
+                    var afterCommandEventArguments = new AfterCommandEventArguments(ctx.ParseResult, ctx.ExitCode);
+                    AfterCommand?.Invoke(afterCommandEventArguments);
 
-                    AfterCommand?.Invoke(ctx.ParseResult);
-
-                    // AfterCommand callback(s) may change exit code
-                    ctx.ExitCode = Environment.ExitCode;
+                    // AfterCommand event handler(s) may change exit code
+                    ctx.ExitCode = afterCommandEventArguments.ExitCode;
                 }
                 catch (TargetInvocationException ex) when (ex.InnerException != null)
                 {
