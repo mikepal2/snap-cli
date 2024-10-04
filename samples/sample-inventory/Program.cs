@@ -43,6 +43,8 @@ internal class Program
         int quantity = 1
         )
     {
+        CLI.ParseResult.ValidateMutuallyExclusiveOptions(["all", "quantity"]);
+
         using var inventory = new Inventory(s_databasePath);
 
         if (all)

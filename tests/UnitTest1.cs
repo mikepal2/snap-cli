@@ -68,7 +68,12 @@ namespace Tests
         [DataRow("exit-code-async --exit-code 1", "[exitCode:1]")]
         [DataRow("exit-code-async --exit-code -1", "[exitCode:-1]")]
         [DataRow("level1cmd -?", "regex:Commands:\\s*level2cmd")]
-        [DataRow("level1cmd level2cmd", "[level2cmd()]")]
+        [DataRow("level1cmd level2cmd", "[level1cmd_level2cmd()]")]
+        [DataRow("validate-mutually-exclusive-options", "!mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options --opt1 1 --opt2 2", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options --opt1 1 --propAlias 2", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options --opt2 1 --propAlias 2", "!mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options --opt2 1 --global-option-field 2", "mutually exclusive")]
         public void TestCLI(string commandLine, string pattern, UseExceptionHandler useExceptionHandler = UseExceptionHandler.Default)
         {
             // synchronize tests
@@ -78,6 +83,8 @@ namespace Tests
                 try
                 {
                     // prepare 
+                    globalOptionField = globalOptionFieldDefaultValue; // restore default
+                    globalOptionProperty = globalOptionPropertyDefaultValue; // restore default
                     switch (useExceptionHandler)
                     {
                         case UseExceptionHandler.Default: break;
@@ -129,7 +136,7 @@ namespace Tests
 
         private static void TraceCommand(params object?[] args)
         {
-            Out.WriteLine($"[{CLI.ParseResult.CommandResult.Command.Name}({string.Join(",", args)})]");
+            Out.WriteLine($"[{CLI.ParseResult.CommandResult.Command.FullName().Replace(' ', '_')}({string.Join(",", args)})]");
         }
 
         private static int CustomExceptionHandler(Exception exception)
@@ -195,7 +202,7 @@ namespace Tests
         }
 #endif
 
-        [Option]
+        [Option] // implicit name: global-option-field
         public static string? globalOptionField = globalOptionFieldDefaultValue;
         private const string globalOptionFieldDefaultValue = "globalOptionFieldDefaultValue";
 
@@ -232,14 +239,12 @@ namespace Tests
         public static void TestField()
         {
             TraceCommand(globalOptionField);
-            globalOptionField = globalOptionFieldDefaultValue; // restore default for other tests
         }
 
         [Command]
         public static void TestProperty()
         {
             TraceCommand(globalOptionProperty);
-            globalOptionProperty = globalOptionPropertyDefaultValue; // restore default for other tests
         }
 
         [RootCommand("Root description")]
@@ -290,6 +295,16 @@ namespace Tests
         public static void level2cmd()
         { 
             TraceCommand();
+        }
+
+        [Command]
+        public static void ValidateMutuallyExclusiveOptions(
+            int opt1=1, int opt2=2)
+        {
+            TraceCommand();
+            CLI.ParseResult.ValidateMutuallyExclusiveOptions(["opt1", "opt2"]);
+            CLI.ParseResult.ValidateMutuallyExclusiveOptions(["opt1", "prop"]);
+            CLI.ParseResult.ValidateMutuallyExclusiveOptions(["opt2", "global-option-field"], ["validate-mutually-exclusive-options"]);
         }
 
 
