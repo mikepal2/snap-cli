@@ -1,6 +1,4 @@
-﻿//#define BEFORE_AFTER_COMMAND_ATTRIBUTE
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
@@ -46,7 +44,7 @@ namespace SnapCLI
         // only allow to use this attribute in subclasses
         private DescriptorAttribute() { }
 
-        protected DescriptorAttribute(DescKind kind, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        protected DescriptorAttribute(DescKind kind, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false)
         {
             Kind = kind;
             Name = name;
@@ -54,10 +52,10 @@ namespace SnapCLI
             IsHidden = hidden;
             IsRequired = required;
             HelpName = helpName;
-            Aliases = aliases;
+            Aliases = SplitAliases(aliases);
         }
 
-        protected DescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        protected DescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false)
             : this(kind, name, helpName, aliases, description, hidden, required)
         {
             Arity = new ArgumentArity(arityMin, arityMax);
@@ -67,6 +65,16 @@ namespace SnapCLI
         {
             return $"{Kind}: name:{Name ?? HelpName ?? Aliases?.FirstOrDefault()}, desc:{Description}";
         }
+
+        private static string[]? SplitAliases(string? aliases)
+        {
+            if (aliases == null)
+                return null;
+            return aliases.Split(" ,;|".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
+                .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                .ToArray();
+        }
+
     }
 #pragma warning restore 1591
 
@@ -93,7 +101,7 @@ namespace SnapCLI
     /// <code>
     /// 
     ///     [Option(name:"config", description:"Specifies configuration file path)]
-    ///     public static string g_configFile = "config.ini";
+    ///     public static string g_configFile = "config.json";
     /// 
     /// </code>
     /// </example>
@@ -102,29 +110,29 @@ namespace SnapCLI
     public class OptionAttribute : DescriptorAttribute
     {
         /// <summary>
-        /// Declares CLI <b>option</b> definition.
+        /// Declares the CLI <b>option</b> definition.
         /// </summary>
-        /// <param name="name">Option name</param>
-        /// <param name="helpName">Option value name</param>
-        /// <param name="aliases">Aliases for the option</param>
-        /// <param name="description">Option description</param>
-        /// <param name="hidden">Hidden options are not shown in help but still can be used</param>
-        /// <param name="required">Required options must be always specified in command line</param>
-        public OptionAttribute(string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        /// <param name="name">The name of the option.</param>
+        /// <param name="helpName">The name of the option value.</param>
+        /// <param name="aliases">A list of aliases for the option, separated by spaces, commas, semicolons, or pipe characters.</param>
+        /// <param name="description">A description of the option.</param>
+        /// <param name="hidden">Hidden options are not shown in help, but they can still be used on the command line.</param>
+        /// <param name="required">Required options must always be specified on the command line.</param>
+        public OptionAttribute(string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false)
             : base(DescKind.Option, name, helpName, aliases, description, hidden, required) { }
 
         /// <summary>
-        /// Declares CLI <b>option</b> definition.
+        /// Declares the CLI <b>option</b> definition.
         /// </summary>
-        /// <param name="arityMin">Minimum number of values an option receives</param>
-        /// <param name="arityMax">Maximum number of values an option receives</param>
-        /// <param name="name">Option name</param>
-        /// <param name="helpName">Option value name</param>
-        /// <param name="aliases">Aliases for the option</param>
-        /// <param name="description">Option description</param>
-        /// <param name="hidden">Hidden options are not shown in help but still can be used</param>
-        /// <param name="required">Required options must be always specified in command line</param>
-        public OptionAttribute(int arityMin, int arityMax, string? name = null, string? helpName = null, string[]? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        /// <param name="arityMin">The minimum number of values an option can receive.</param>
+        /// <param name="arityMax">The maximum number of values an option can receive.</param>
+        /// <param name="name">The name of the option.</param>
+        /// <param name="helpName">The name of the option value.</param>
+        /// <param name="aliases">A list of aliases for the option, separated by spaces, commas, semicolons, or pipe characters.</param>
+        /// <param name="description">A description of the option.</param>
+        /// <param name="hidden">Hidden options are not shown in help, but they can still be used on the command line.</param>
+        /// <param name="required">Required options must always be specified on the command line.</param>
+        public OptionAttribute(int arityMin, int arityMax, string? aliases, string? name = null, string? helpName = null,  string? description = null, bool hidden = false, bool required = false)
             : base(DescKind.Option, arityMin, arityMax, name, helpName, aliases, description, hidden, required) { }
     }
 
@@ -152,24 +160,24 @@ namespace SnapCLI
     public class ArgumentAttribute : DescriptorAttribute
     {
         /// <summary>
-        /// Declares <b>argument</b> definition for CLI command.
+        /// Declares the <b>argument</b> definition for a CLI command.
         /// </summary>
-        /// <param name="name">Argument name</param>
-        /// <param name="helpName">Argument name in help</param>
-        /// <param name="description">Argument description</param>
-        /// <param name="hidden">Hidden arguments are not shown in help but still can be used</param>
+        /// <param name="name">The name of the argument.</param>
+        /// <param name="helpName">The name of the argument as displayed in help.</param>
+        /// <param name="description">A description of the argument.</param>
+        /// <param name="hidden">Hidden arguments are not shown in help but can still be used.</param>
         public ArgumentAttribute(string? name = null, string? helpName = null, string? description = null, bool hidden = false)
             : base(DescKind.Argument, name, helpName, aliases: null, description, hidden) { }
 
         /// <summary>
-        /// Declares <b>argument</b> definition for CLI command.
+        /// Declares the <b>argument</b> definition for a CLI command.
         /// </summary>
-        /// <param name="arityMin">Minimum number of values an argument receives</param>
-        /// <param name="arityMax">Maximum number of values an argument receives</param>
-        /// <param name="name">Argument name</param>
-        /// <param name="helpName">Argument name in help</param>
-        /// <param name="description">Argument description</param>
-        /// <param name="hidden">Hidden arguments are not shown in help but still can be used</param>
+        /// <param name="arityMin">The minimum number of values an argument can receive.</param>
+        /// <param name="arityMax">The maximum number of values an argument can receive.</param>
+        /// <param name="name">The name of the argument.</param>
+        /// <param name="helpName">The name of the argument as displayed in help.</param>
+        /// <param name="description">A description of the argument.</param>
+        /// <param name="hidden">Hidden arguments are not shown in help but can still be used.</param>
         public ArgumentAttribute(int arityMin, int arityMax, string? name = null, string? helpName = null, string? description = null, bool hidden = false)
         : base(DescKind.Argument, arityMin, arityMax, name, helpName, aliases: null, description, hidden) { }
     }
@@ -222,23 +230,22 @@ namespace SnapCLI
     /// </summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>If name not specified and program has only one method declared with <see cref="CommandAttribute"/> and command name not explicitly specified in its <c>name</c> parameter, this command is automatically treated as <see cref="RootCommand"/>.</description></item>
-    /// <item><description>If name not specified, method name converted to lower case is used as command name. For example method <c>Hello()</c> will handle <c>hello</c> command.</description></item>
-    /// <item><description>If method name is used and it contains underscore <c>_</c> char, it describes subcommand - for example "list_orders()" method is subcommand <b>orders</b> of <b>list</b> command.</description></item>
-    /// <item><description>If name specified and contains spaces, it describes subcommand - for example "list orders" is subcommand <b>orders</b> of <b>list</b> command.</description></item>
+    /// <item><description>If the name is not specified and the program has only one method declared with <see cref="CommandAttribute"/>, this command is automatically treated as <see cref="RootCommand"/>.</description></item>
+    /// <item><description>If the name is not specified, the method name converted to kebab-case is used as the command name. For example, the method <c>HelloWorld()</c> will handle the <c>hello-world</c> command.</description></item>
+    /// <item><description>If the method name is used and contains the underscore <c>_</c> character, it describes a subcommand. For example, the method <c>order_create()</c> is the subcommand <b>crate</b> of the <b>oreder</b> command.</description></item>
+    /// <item><description>If the name is specified and contains spaces, it describes a subcommand. For example, <c>order list</c> is the subcommand <b>list</b> of the <b>order</b> command.</description></item>
     /// </list>  
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method|AttributeTargets.Class, AllowMultiple = true)]
     public class CommandAttribute : DescriptorAttribute {
-
         /// <summary>
-        /// Declares handler for CLI <see cref="Command"/>. 
+        /// Declares a handler for the CLI <see cref="Command"/>.
         /// </summary>
-        /// <param name="name">Command name</param>
-        /// <param name="aliases">Command aliases</param>
-        /// <param name="description">Command description</param>
-        /// <param name="hidden">Hidden commands are not shown in help but still can be used</param>
-        public CommandAttribute(string? name = null, string[]? aliases = null, string? description = null, bool hidden = false) : base(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden)
+        /// <param name="name">The name of the command.</param>
+        /// <param name="aliases">A list of aliases for the command. This can be a string where aliases are separated by spaces, commas, semicolons, or pipe characters, or an array of strings containing individual aliases.</param>
+        /// <param name="description">A description of the command.</param>
+        /// <param name="hidden">Hidden commands are not shown in help but can still be used.</param>
+        public CommandAttribute(string? name = null, string? aliases = null, string? description = null, bool hidden = false) : base(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden)
         {
         }
     }
@@ -258,30 +265,12 @@ namespace SnapCLI
     }
 
     /// <summary>
-    /// Declares configuration method for CLI. The method must be public static and may have no parameters or one parameter of type <see cref="CommandLineBuilder"/>.
+    /// Declares startup method for CLI. The method must be public static and may have no parameters or one parameter of type <see cref="CommandLineBuilder"/>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class StartupAttribute : Attribute
     {
     }
-
-#if BEFORE_AFTER_COMMAND_ATTRIBUTE
-    /// <summary>
-    /// Declares configuration method for CLI. The method must be public static and receive single argument of type <see cref="CommandLineBuilder"/>.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method)]
-    public class BeforeCommandAttribute : Attribute
-    {
-    }
-
-    /// <summary>
-    /// Declares configuration method for CLI. The method must be public static and receive single argument of type <see cref="CommandLineBuilder"/>.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method)]
-    public class AfterCommandAttribute : Attribute
-    {
-    }
-#endif
 
     /// <summary>
     /// Command Line Interface class implementation. Provides simple interface to create CLI programs using attributes declarations.
@@ -452,12 +441,6 @@ namespace SnapCLI
             return 1;
         }
 
-
-#if BEFORE_AFTER_COMMAND_ATTRIBUTE
-        private static MethodInfo[]? _beforeCommandsCallbacks;
-        private static MethodInfo[]? _afterCommandsCallbacks;
-#endif
-
         private class CommandMethodDesc
         {
             public string CommandName;
@@ -603,7 +586,8 @@ namespace SnapCLI
 
             foreach (var (prop, desc) in assembly.GetTypes()
                 .SelectMany(t => t.GetProperties(bindingFlags))
-                .Select(x => new { prop = x, desc = x.GetCustomAttribute<DescriptorAttribute>() })
+                .Where(x => x.IsDefined(typeof(DescriptorAttribute)))
+                .Select(x => new { prop = x, desc = GetCustomAttribute<PropertyInfo, DescriptorAttribute>(x) })
                 .Where(x => x.desc != null && x.desc.Kind == DescriptorAttribute.DescKind.Option)
                 .Select(x => (x.prop, x.desc!)))
             {
@@ -619,7 +603,7 @@ namespace SnapCLI
 
             foreach (var (field, desc) in assembly.GetTypes()
                 .SelectMany(t => t.GetFields(bindingFlags))
-                .Select(x => new { field = x, desc = x.GetCustomAttribute<DescriptorAttribute>() })
+                .Select(x => new { field = x, desc = GetCustomAttribute<FieldInfo,DescriptorAttribute>(x) })
                 .Where(x => x.desc != null && x.desc.Kind == DescriptorAttribute.DescKind.Option)
                 .Select(x => (x.field, x.desc!)))
             {
@@ -636,22 +620,6 @@ namespace SnapCLI
             var globalOptionsInitializers = globalOptionsInitializersList.ToArray();
 
             // add method handlers
-
-#if BEFORE_AFTER_COMMAND_ATTRIBUTE
-            _beforeCommandsCallbacks = GetCallbackMethodsByAttribute<BeforeCommandAttribute>(assembly, bindingFlags, new Type[] {typeof(ParseResult), typeof(Command) });
-            BeforeCommand += (parseResult, command) =>
-            {
-                foreach (var callaback in _beforeCommandsCallbacks)
-                    callaback.Invoke(null, new object[] { parseResult, command });
-            };
-
-            _afterCommandsCallbacks = GetCallbackMethodsByAttribute<AfterCommandAttribute>(assembly, bindingFlags, new Type[] { typeof(ParseResult), typeof(Command) });
-            AfterCommand += (parseResult, command) =>
-            {
-                foreach (var callaback in _afterCommandsCallbacks)
-                    callaback.Invoke(null, new object[] {parseResult, command });
-            };
-#endif
 
             if (rootMethod != null)
                 AddCommandHandler(RootCommand, rootMethod.Method, globalOptionsInitializers);
@@ -721,7 +689,7 @@ namespace SnapCLI
         // find [RootCommand] and [Command] attributes declared on class
         private static List<DescriptorAttribute> GetGlobalDescriptors(Assembly assembly, BindingFlags bindingFlags)
         {
-            return assembly.GetTypes().SelectMany(t => t.GetCustomAttributes<DescriptorAttribute>()).ToList();
+            return assembly.GetTypes().SelectMany(t => GetCustomAttributes<Type, DescriptorAttribute>(t)).ToList();
         }
 
         // find methods declared with [RootCommand] or [Command] attributes
@@ -731,13 +699,43 @@ namespace SnapCLI
                                   .SelectMany(t => t.GetMethods(bindingFlags))
                                   .Select(m =>
                                   {
-                                      if (m.GetCustomAttributes<DescriptorAttribute>().Count() > 1)
+                                      if (GetCustomAttributes<MethodInfo, DescriptorAttribute>(m).Count() > 1)
                                           throw new AttributeUsageException($"Method {m.Name} has multiple [Command] attributes declared");
-                                      return new { method = m, desc = m.GetCustomAttribute<DescriptorAttribute>() };
+                                      return new { method = m, desc = GetCustomAttribute<MethodInfo, DescriptorAttribute>(m) };
                                   })
                                   .Where(m => m.desc != null)
                                   .Select(m => new CommandMethodDesc(m.method, m.desc!))
                                   .ToList();
+        }
+
+        // Helper method to provide meaningful diagnostics on attribute instantiation.
+        private static AttrType? GetCustomAttribute<SourceType, AttrType>(SourceType source) 
+            where SourceType : ICustomAttributeProvider 
+            where AttrType : Attribute
+        {
+            try
+            {
+                return source.GetCustomAttributes(typeof(AttrType), false).OfType<AttrType>().FirstOrDefault();
+            }
+            catch (Exception ex) 
+            {
+                throw new Exception($"Failed to process attributes for {source}", ex);
+            }
+        }
+
+        // Helper method to provide meaningful diagnostics on attribute instantiation.
+        private static IEnumerable<AttrType> GetCustomAttributes<SourceType, AttrType>(SourceType source)
+            where SourceType : ICustomAttributeProvider
+            where AttrType : Attribute
+        {
+            try
+            {
+                return source.GetCustomAttributes(typeof(AttrType), false).OfType<AttrType>();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to process attributes for {source}", ex);
+            }
         }
 
         // find methods declared with attribute
@@ -745,7 +743,7 @@ namespace SnapCLI
         {
             var methods = assembly.GetTypes()
                 .SelectMany(t => t.GetMethods(bindingFlags))
-                .Where(m => m.GetCustomAttribute<T>() != null)
+                .Where(m => GetCustomAttribute<MethodInfo,T>(m) != null)
                 .ToArray();
 
             foreach (var method in methods)
@@ -800,7 +798,7 @@ namespace SnapCLI
 
             var rootCommandDescription = rootMethod?.Desc.Description ??
                 rootDescriptor?.Description ??
-                assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description ??
+                GetCustomAttribute<Assembly,AssemblyDescriptionAttribute>(assembly)?.Description ??
                 "";
 
             return new RootCommand(rootCommandDescription);
@@ -861,7 +859,7 @@ namespace SnapCLI
 
             foreach (var param in method.GetParameters())
             {
-                var info = param.GetCustomAttribute<DescriptorAttribute>() ?? new OptionAttribute();
+                var info = GetCustomAttribute<ParameterInfo,DescriptorAttribute>(param) ?? new OptionAttribute();
                 Func<object?>? getDefaultValue = null;
                 if (param.HasDefaultValue)
                     getDefaultValue = () => param.DefaultValue;

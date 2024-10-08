@@ -60,7 +60,7 @@ public static void Hello()
 Additional information can be provided in attribute parameters to enhance command-line parsing and the help system, such as the command's explicit name, aliases, description, and whether the command is hidden
 
 ```csharp
-[Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
+[Command(name:"hello", aliases:"hi,hola,bonjour", description:"Hello example", hidden:false)]
 public static void Hello() 
 {
     Console.WriteLine("Hello World!");
@@ -98,7 +98,7 @@ An [option](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax
 Any parameter of command handler method automatically becomes a command option. In the next example `name` becomes option for command `hello`:
 
 ```csharp
-[Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
+[Command(name:"hello", aliases:"hi,hola,bonjour", description:"Hello example", hidden:false)]
 public static void Hello(string name = "World") 
 {
     Console.WriteLine($"Hello {name}!");
@@ -108,7 +108,7 @@ public static void Hello(string name = "World")
 Of course we can provide additional information about option with `[Option]` attribute such as explicit name, aliases, description, and whatever option is required.
 
 ```csharp
-[Command(name:"hello", aliases:["hi"], description:"Hello example", hidden:false)]
+[Command(name:"hello", aliases:"hi,hola,bonjour", description:"Hello example", hidden:false)]
 public static void Hello(
     [Option(name:"name", description:"The name we should use for the greeting")]
     string name = "World"
@@ -266,7 +266,7 @@ By default, global options are not required because properties and fields always
 class Sample
 {
     // This global option is not required and have explicit default value of "config.ini"
-    [Option(name:"config", description:"Configuration file name", aliases: ["c","cfg"])]
+    [Option(name:"config", description:"Configuration file name", aliases:"c,cfg")]
     public static string ConfigFile = "config.ini";
 
     // This global option is not required and have implicit default value of (null)
@@ -374,7 +374,7 @@ With descriptions provided as shown in the following example, the help output wi
 
 ```csharp
 [RootCommand(description: "This is a sample program")] // or [assembly: AssemblyDescription(description: "This is sample program")]
-[Command(name: "hello", description: "This command greets someone", aliases: ["hi"])]
+[Command(name: "hello", description: "This command greets someone", aliases: "hi,hola,bonjour")]
 class Sample
 {
     [Command(description:"This command greets the world!")]

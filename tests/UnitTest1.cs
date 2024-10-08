@@ -206,7 +206,7 @@ namespace Tests
         public static string? globalOptionField = globalOptionFieldDefaultValue;
         private const string globalOptionFieldDefaultValue = "globalOptionFieldDefaultValue";
 
-        [Option(name: "prop", helpName: "propHelpName", aliases: ["propAlias"], description: "Prop description")]
+        [Option(name: "prop", helpName: "propHelpName", aliases: "propAlias", description: "Prop description")]
         public static string? globalOptionProperty { get; set; } = globalOptionPropertyDefaultValue;
         private const string globalOptionPropertyDefaultValue = "globalOptionPropertyDefaultValue";
 
@@ -253,9 +253,9 @@ namespace Tests
             TraceCommand();
         }
 
-        [Command(name: "test6", aliases: ["TEST6"], description: "Test6 description")]
+        [Command(name: "test6", aliases: "TEST6", description: "Test6 description")]
         public static void Test6Handler(
-            [Option(name:"opt1name", helpName:"opt1help", aliases:["opt1alias", "O"], description:"opt1 description")]
+            [Option(name:"opt1name", helpName:"opt1help", aliases:"opt1alias,O", description:"opt1 description")]
             bool option1,
 
             [Argument(name:"arg1name", helpName:"arg1help", description:"arg1 description")]

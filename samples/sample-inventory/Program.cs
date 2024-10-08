@@ -8,7 +8,7 @@
 internal class Program
 {
     // Here we declare global option
-    [Option(name:"database", description:"Inventory database file", aliases: ["db"], helpName:"filepath")]
+    [Option(name:"database", description:"Inventory database file", aliases:"db", helpName:"filepath")]
     private static string s_databasePath = "inventory.json";
     
 
@@ -83,7 +83,7 @@ internal class Program
 
     [Command(description: "List items in the inventory")]
     public static void List(
-        [Option(name: "format", aliases:["f"], description:"Output format")]
+        [Option(name:"format", aliases:"f", description:"Output format")]
         ListFormat listFormat = ListFormat.Text
         )
     {
