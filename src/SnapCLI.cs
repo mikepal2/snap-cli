@@ -16,7 +16,6 @@ using System.Threading.Tasks;
 
 namespace SnapCLI
 {
-
     /// <summary>
     /// DescriptorAttribute is only used as base for other attributes and should not be used by clients 
     /// </summary>
@@ -39,24 +38,26 @@ namespace SnapCLI
         public string? Description { get; }
         public bool IsHidden { get; }
         public bool IsRequired { get; }
+        public string? MutuallyExclusuveOptionsArguments { get; }
         public ArgumentArity? Arity { get; }
 
         // only allow to use this attribute in subclasses
         private DescriptorAttribute() { }
 
-        protected DescriptorAttribute(DescKind kind, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false)
+        protected DescriptorAttribute(DescKind kind, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false, string? mutuallyExclusuveOptionsArguments = null)
         {
             Kind = kind;
             Name = name;
             Description = description;
             IsHidden = hidden;
             IsRequired = required;
+            MutuallyExclusuveOptionsArguments = mutuallyExclusuveOptionsArguments;
             HelpName = helpName;
             Aliases = SplitAliases(aliases);
         }
 
-        protected DescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false)
-            : this(kind, name, helpName, aliases, description, hidden, required)
+        protected DescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false, string? mutuallyExclusuveOptionsArguments = null)
+            : this(kind, name, helpName, aliases, description, hidden, required, mutuallyExclusuveOptionsArguments)
         {
             Arity = new ArgumentArity(arityMin, arityMax);
         }
@@ -66,11 +67,12 @@ namespace SnapCLI
             return $"{Kind}: name:{Name ?? HelpName ?? Aliases?.FirstOrDefault()}, desc:{Description}";
         }
 
+        internal static readonly char[] NameListDelimiters = " ,;".ToCharArray();
         private static string[]? SplitAliases(string? aliases)
         {
             if (aliases == null)
                 return null;
-            return aliases.Split(" ,;|".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
+            return aliases.Split(DescriptorAttribute.NameListDelimiters, StringSplitOptions.RemoveEmptyEntries)
                 .Where(alias => !string.IsNullOrWhiteSpace(alias))
                 .ToArray();
         }
@@ -205,8 +207,10 @@ namespace SnapCLI
         /// Declares handler for <see cref="RootCommand"/>, i.e. command that executed when no subcommands are present on the command line. Only one method may be declared with this attribute.
         /// </summary>
         /// <param name="description">Root command description, also serving as programs general description when help is shown.</param>
+        /// <param name="mutuallyExclusuveOptionsArguments">List of mutually exclusive options/arguments names separated by spaces, commas, semicolons, or pipe characters. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1)</param>
 
-        public RootCommandAttribute(string? description = null) : base(DescKind.RootCommand, description: description)
+        public RootCommandAttribute(string? description = null, string? mutuallyExclusuveOptionsArguments = null) :
+            base(DescKind.RootCommand, description: description, mutuallyExclusuveOptionsArguments: mutuallyExclusuveOptionsArguments)
         {
         }
     }
@@ -242,10 +246,12 @@ namespace SnapCLI
         /// Declares a handler for the CLI <see cref="Command"/>.
         /// </summary>
         /// <param name="name">The name of the command.</param>
-        /// <param name="aliases">A list of aliases for the command. This can be a string where aliases are separated by spaces, commas, semicolons, or pipe characters, or an array of strings containing individual aliases.</param>
+        /// <param name="aliases">A list of aliases for the command. This can be a string where aliases are separated by spaces, commas, semicolons, or pipe characters.</param>
         /// <param name="description">A description of the command.</param>
         /// <param name="hidden">Hidden commands are not shown in help but can still be used.</param>
-        public CommandAttribute(string? name = null, string? aliases = null, string? description = null, bool hidden = false) : base(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden)
+        /// <param name="mutuallyExclusuveOptionsArguments">List of mutually exclusive options/arguments names separated by spaces, commas, semicolons, or pipe characters. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1)</param>
+        public CommandAttribute(string? name = null, string? aliases = null, string? description = null, bool hidden = false, string? mutuallyExclusuveOptionsArguments = null) 
+            : base(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden, mutuallyExclusuveOptionsArguments: mutuallyExclusuveOptionsArguments)
         {
         }
     }
@@ -622,14 +628,14 @@ namespace SnapCLI
             // add method handlers
 
             if (rootMethod != null)
-                AddCommandHandler(RootCommand, rootMethod.Method, globalOptionsInitializers);
+                AddCommandHandler(RootCommand, rootMethod, globalOptionsInitializers);
 
             foreach (var m in commandMethods
                 .Where(m => m.Desc.Kind == DescriptorAttribute.DescKind.Command && m != rootMethod)
                 .OrderBy(m => m.CommandName.Length)) // sort by name length to ensure parent commands created before subcommands
             {
                 var command = CreateAndAddCommand(RootCommand, m.CommandName, m.Desc);
-                AddCommandHandler(command, m.Method, globalOptionsInitializers);
+                AddCommandHandler(command, m, globalOptionsInitializers);
             }
 
             // validate parent commands
@@ -844,10 +850,12 @@ namespace SnapCLI
             , typeof(ValueTask<int>), typeof(ValueTask)
 #endif
         };
-        private static void AddCommandHandler(Command command, MethodInfo method, Action<InvocationContext>[] globalOptionsInitializers)
+        private static void AddCommandHandler(Command command, CommandMethodDesc methodDescriptor, Action<InvocationContext>[] globalOptionsInitializers)
         {
             if (command.Handler != null)
                 throw new AttributeUsageException($"Command '{command.Name}' has multiple handler methods");
+
+            var method = methodDescriptor.Method;
 
             if (!method.IsStatic)
                 throw new AttributeUsageException($"Method {method.Name} declared as [Command] must be static");
@@ -855,11 +863,11 @@ namespace SnapCLI
             if (!SupportedReturnTypes.Any(t => t.IsAssignableFrom(method.ReturnType)))
                 throw new AttributeUsageException($"Method {method.Name} return type must be one of {string.Join(", ", SupportedReturnTypes.Select(t => GetFullTypeName(t)))}.");
 
-             var paramInfo = new List<Symbol>();
+            var paramInfo = new List<Symbol>();
 
             foreach (var param in method.GetParameters())
             {
-                var info = GetCustomAttribute<ParameterInfo,DescriptorAttribute>(param) ?? new OptionAttribute();
+                var info = GetCustomAttribute<ParameterInfo, DescriptorAttribute>(param) ?? new OptionAttribute();
                 Func<object?>? getDefaultValue = null;
                 if (param.HasDefaultValue)
                     getDefaultValue = () => param.DefaultValue;
@@ -903,6 +911,9 @@ namespace SnapCLI
                     }
                 }).ToArray();
 
+                if (methodDescriptor.Desc.MutuallyExclusuveOptionsArguments != null)
+                    ParseResult.ValidateMutuallyExclusiveOptionsArguments(methodDescriptor.Desc.MutuallyExclusuveOptionsArguments);
+
                 try
                 {
                     var beforeCommandEventArguments = new BeforeCommandEventArguments(ctx.ParseResult);
@@ -926,13 +937,13 @@ namespace SnapCLI
                                 ctx.ExitCode = 0;
                                 break;
 #if NETCOREAPP2_0_OR_GREATER
-                        case ValueTask<int> t:
-                            ctx.ExitCode = await t;
-                            break;
-                        case ValueTask t:
-                            await t;
-                            ctx.ExitCode = 0;
-                            break;
+                            case ValueTask<int> t:
+                                ctx.ExitCode = await t;
+                                break;
+                            case ValueTask t:
+                                await t;
+                                ctx.ExitCode = 0;
+                                break;
 #endif
                             case int i:
                                 ctx.ExitCode = i;

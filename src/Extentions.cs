@@ -1,9 +1,8 @@
-﻿//#define BEFORE_AFTER_COMMAND_ATTRIBUTE
-
-using System;
+﻿using System;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace SnapCLI
 {
@@ -16,14 +15,52 @@ namespace SnapCLI
         /// Validates that only one of specified options appear on command line.
         /// </summary>
         /// <param name="parseResult">Command line parse result.</param>
-        /// <param name="options">List of mutually exclusive options.</param>
+        /// <param name="mutuallyExclusiveOptionsArguments">List of mutually exclusive options/arguments names. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1).</param>
         /// <param name="commands">Optional list of commands this validation applies. If not specified, validation applies to all commands.</param>
         /// <exception cref="ArgumentException">When there are mutually exclusive options found on command line.</exception>
         /// <exception cref="ArgumentNullException">Option name or command name is <code>null</code>.</exception>
-        public static void ValidateMutuallyExclusiveOptions(this ParseResult parseResult, string[] options, string[]? commands = null)
+        public static void ValidateMutuallyExclusiveOptionsArguments(this ParseResult parseResult, string mutuallyExclusiveOptionsArguments, string[]? commands = null)
         {
-            if (options.Length < 2)
-                throw new ArgumentException($"At least two options must be specified for {nameof(ValidateMutuallyExclusiveOptions)} method");
+            var groups = Regex.Split(mutuallyExclusiveOptionsArguments, @"(?<=[)])")
+                .Select(x => x.Trim(DescriptorAttribute.NameListDelimiters))
+                .Where(x => x != "")
+                .ToArray();
+
+            if (groups.Length == 0)
+                return;
+
+            foreach (var _group in groups)
+            {
+                var group = _group;
+                if (group.StartsWith("(") && !group.EndsWith(")"))
+                    throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses): " + mutuallyExclusiveOptionsArguments);
+                group = group.Substring(1, group.Length - 2);
+                if (group.Contains('(') || group.Contains(')'))
+                    throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses) " + mutuallyExclusiveOptionsArguments);
+
+                var optionsList = group.Split(DescriptorAttribute.NameListDelimiters, StringSplitOptions.RemoveEmptyEntries);
+                if (optionsList.Length == 0)
+                    continue;
+
+                ValidateMutuallyExclusiveOptionsArguments(parseResult, optionsList, commands);
+            }
+        }
+
+        /// <summary>
+        /// Validates that only one of specified options appear on command line.
+        /// </summary>
+        /// <param name="parseResult">Command line parse result.</param>
+        /// <param name="mutuallyExclusiveOptionsArguments">List of mutually exclusive options/arguments names.</param>
+        /// <param name="commands">Optional list of commands this validation applies. If not specified, validation applies to all commands.</param>
+        /// <exception cref="ArgumentException">When there are mutually exclusive options found on command line.</exception>
+        /// <exception cref="ArgumentNullException">Option name or command name is <code>null</code>.</exception>
+        public static void ValidateMutuallyExclusiveOptionsArguments(this ParseResult parseResult, string[] mutuallyExclusiveOptionsArguments, string[]? commands = null)
+        {
+            if (mutuallyExclusiveOptionsArguments == null || mutuallyExclusiveOptionsArguments.Length == 0)
+                return;
+
+            if (mutuallyExclusiveOptionsArguments.Length < 2)
+                throw new ArgumentException($"At least two options must be specified for {nameof(ValidateMutuallyExclusiveOptionsArguments)} method");
 
             if (commands != null)
             {
@@ -33,15 +70,25 @@ namespace SnapCLI
                 }
             }
 
-            var optionsPresentInCommandLine = parseResult.RootCommandResult.Children // cannot access option.IsGlobal(), assume all options of root command are global options
+            var commandLineArgs = parseResult.RootCommandResult.Children // cannot access option.IsGlobal(), assume all options of root command are global options
                     .Concat(parseResult.CommandResult.Children) // command options
-                    .OfType<OptionResult>()
-                    .Where(optResult => optResult.IsImplicit == false && options.Any(optionName => optResult.Option.NameEquals(optionName ?? throw new ArgumentNullException(nameof(optionName)))))
-                    .Select(optResult => optResult.Option)
+                    .Select(r => {
+                        if (r is ArgumentResult argResult
+                            && argResult.Tokens.Count > 0
+                            && mutuallyExclusiveOptionsArguments.Any(name => argResult.Argument.NameEquals(name ?? throw new ArgumentNullException(nameof(name)))))
+                            return argResult.Argument.ToString();
+                        if (r is OptionResult optResult
+                            && !optResult.IsImplicit
+                            && mutuallyExclusiveOptionsArguments.Any(name => optResult.Option.NameEquals(name ?? throw new ArgumentNullException(nameof(name)))))
+                            return optResult.Option.ToString();
+                        return null;
+                    })
+                    .Where(x => x != null)
+                    .Distinct()
                     .ToArray();
 
-            if (optionsPresentInCommandLine.Length > 1)
-                throw new ArgumentException($"Options {optionsPresentInCommandLine[0]!.Name} and {optionsPresentInCommandLine[1]!.Name} are mutually exclusive for command '{parseResult.CommandResult.Command.FullName()}'");
+            if (commandLineArgs.Length > 1)
+                throw new ArgumentException($"{commandLineArgs[0]} and {commandLineArgs[1]} are mutually exclusive for command '{parseResult.CommandResult.Command.FullName()}'");
         }
 
         /// <summary>

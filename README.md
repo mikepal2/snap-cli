@@ -105,7 +105,7 @@ public static void Hello(string name = "World")
 }
 ```
 
-Of course we can provide additional information about option with `[Option]` attribute such as explicit name, aliases, description, and whatever option is required.
+Additional information about an option can be provided using the `[Option]` attribute, including an explicit name, aliases, a description, and whether the option is required.
 
 ```csharp
 [Command(name:"hello", aliases:"hi,hola,bonjour", description:"Hello example", hidden:false)]
@@ -176,7 +176,7 @@ Hello Michael!
 ## Arguments
 An [argument](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#arguments) is a value passed to an option or command without specifying an option name; it is also referred to as a positional argument.
 
-You can declare that parameter is argument with an `[Argument]` attribute. Lets change `Option` to `Argument` in our example:
+You can declare that a parameter is an argument using the `[Argument]` attribute. Let's change "Option" to "Argument" in our example:
 
 ```csharp
 [Command(name:"hello", description:"Hello example")]
@@ -385,6 +385,22 @@ class Sample
 }
 ```
 
+## The CLI execution order
+The `SnapCLI` library takes responsibility for initialization and execution of the CLI application. There is no need to write any startup boilerplate code and you don't even need to write [Main](#main-method) method for the application.
+
+The steps during CLI initialization and execution are as follows:
+
+1. The `SnapCLI` library scans assembly for `[RootCommand]`, `[Command]`, `[Option]`, `[Argument]`, and `[Startup]` attributes.
+2. The `System.CommandLine` parser is initialized, and the commands hierarchy is built based on the attributes found.
+3. The [Startup](#startup) method(s) are executed, if present.
+4. The command line is parsed.
+5. [Global options](#global-options) are set according to command line parameters.
+6. The [BeforeCommand](#beforecommand) event is invoked.
+7. The command handler corresponding to command specified on command line is executed.
+8. The [AfterCommand](#aftercommand) event is invoked.
+9. The process is exiting.
+
+
 ## Startup
 You may declare a method to perform additional initialization using `[Startup]` attribute. This method will be executed before command line is parsed. The startup method is recognized by its attribute rather than its name; in other words, you can name it anything you like.
 
@@ -415,7 +431,48 @@ public static void Startup(CommandLineBuilder commandLineBuilder)
 
 The `CLI.RootCommand` property, which provides access to the command hierarchy along with their options and arguments, is available in the startup code for further customization.
 
-> **Important:** When the startup method is invoked, the command line has not been parsed yet; therefore, global parameters still have their default values and not the values from the command line.
+> **Important:** When the startup method is invoked, the command line has not been parsed yet; therefore global parameters still have their default values and not the values from the command line, and `CLI.ParseResult` property is not accessible.
+
+
+## BeforeCommand
+
+The `BeforeCommand` event is invoked after the command line is parsed and before the command handler is executed. It allows for any additional common initialization, validation ot preprocessing the program may need before executing any command. With the command line parameters already parsed, global options reflecting the values specified on the command line and the `CLI.ParseResult` is accessible for validation or to access options and arguments.
+
+The `BeforeCommand` event handler receives a `BeforeCommandEventArguments` parameter with the following member:
+* `ParseResult` - The command line parse result.
+
+To register a `BeforeCommand` event handler, use the following code:
+
+```csharp
+[Startup]
+public static void Startup()
+{
+    CLI.BeforeCommand += (args) => {
+        // common initialization or validation before executing any command
+        ...
+    }
+}
+```
+
+## AfterCommand
+
+The `AfterCommand` event is invoked after the command handler is executed. It allows for any common deinitialization or post-processing the program may need after executing a command. The event handler receives an `AfterCommandEventArguments` parameter with the following members:
+
+* `ParseResult` - The command line parse result.
+* `ExitCode` - The exit code to return from the CLI program. The handler may change the exit code to reflect specific execution results.
+
+To register an `AfterCommand` event handler, use the following code:
+
+```csharp
+[Startup]
+public static void Startup()
+{
+    CLI.AfterCommand += (args) => {
+        // Common deinitialization or post-processing after executing any command
+        ...
+    };
+}
+```
 
 ## Exception handling
 To catch unhandled exceptions during command execution you may set exception handler in [Startup](#startup) method. The handler is intended to provide exception diagnostics according to the need of your application before exiting. The return value from handler will be used as program's exit code. For example:
@@ -445,9 +502,55 @@ public static void Startup()
 }
 ```
 
+## Validation
+
+There are multiple strategies to validate command line input. Input values can be validated at the beginning of the command handler method in any manner required by the command syntax.
+
+```
+[Command]
+public static void command([Argument] int arg1 = 1, int opt1 = 1, int opt2 = 2) 
+{
+    if (arg1 < 0 || arg1 > 100)
+        throw new ArgumentException($"The <arg1> value range is 0-100");
+    ...
+}
+```
+
+Additionally, the library provides mechanisms to check for mutually exclusive options and arguments:
+
+* The `mutuallyExclusiveOptionsArguments` parameter of the `[Command]` attribute can be used to declare a list of mutually exclusive option/argument names separated by spaces, commas, semicolons, or pipe characters. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses.
+  ```
+  [Command(mutuallyExclusiveOptionsArguments="(opt1,opt2)(arg1,opt2)")]
+  public static void command([Argument] int arg1 = 1, int opt1 = 1, int opt2 = 2) 
+  {
+      ...
+  }
+  ``` 
+* The `ParseResult.ValidateMutuallyExclusiveOptionsArguments()` method can be used from within the command handler method.
+  ```
+  [Command]
+  public static void command([Argument] int arg1 = 1, int opt1 = 1, int opt2 = 2) 
+  {
+      CLI.ParseResult.ValidateMutuallyExclusiveOptionsArguments("(opt1,opt2)(arg1,opt2)");
+      ...
+  }
+  ``` 
+* Alternatively, the `ParseResult.ValidateMutuallyExclusiveOptionsArguments()` method can be used from the [BeforeCommand](#beforecommand) event handler.
+  ```
+  [Startup]
+  public static void Startup()
+  {
+      CLI.BeforeCommand += (args) => {
+          args.ParseResult.ValidateMutuallyExclusiveOptionsArguments("global-opt1,global-opt2");
+          args.ParseResult.ValidateMutuallyExclusiveOptionsArguments("(global-opt1,opt2)(opt3,opt4)");
+          ...
+      };
+  }
+  ``` 
+
 # .Net framework support
 Supported frameworks can be found on the [SnapCLI NuGet page](https://www.nuget.org/packages/SnapCLI#supportedframeworks-body-tab). The goal is to maintain the same level of support as the System.CommandLine library.
 
 # License
-This project is licensed under the [MIT license](LICENSE.md).
-Some parts of this project are borrowed with modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT license](LICENSE-command-line-api.md).
+This project is licensed under the [MIT License](LICENSE.md).
+Some parts of this project are borrowed with modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT License](LICENSE-command-line-api.md).

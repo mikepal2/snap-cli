@@ -73,6 +73,12 @@ namespace Tests
         [DataRow("validate-mutually-exclusive-options --opt1 1 --propAlias 2", "mutually exclusive")]
         [DataRow("validate-mutually-exclusive-options --opt2 1 --propAlias 2", "!mutually exclusive")]
         [DataRow("validate-mutually-exclusive-options --opt2 1 --global-option-field 2", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options2 --opt1 1 --opt2 2", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options2 --opt1 1 --propAlias 2", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options2 --opt2 1 --propAlias 2", "!mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options2 --opt2 1 --global-option-field 2", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options2 3 --opt2 1", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options2 3 --opt1 1", "!mutually exclusive")]
         public void TestCLI(string commandLine, string pattern, UseExceptionHandler useExceptionHandler = UseExceptionHandler.Default)
         {
             // synchronize tests
@@ -130,8 +136,69 @@ namespace Tests
             }
         }
 
+        // https://stackoverflow.com/a/64236441
+        public static IEnumerable<string> SplitArgs(string commandLine)
+        {
+            var result = new StringBuilder();
 
+            var quoted = false;
+            var escaped = false;
+            var started = false;
+            var allowcaret = false;
+            for (int i = 0; i < commandLine.Length; i++)
+            {
+                var chr = commandLine[i];
 
+                if (chr == '^' && !quoted)
+                {
+                    if (allowcaret)
+                    {
+                        result.Append(chr);
+                        started = true;
+                        escaped = false;
+                        allowcaret = false;
+                    }
+                    else if (i + 1 < commandLine.Length && commandLine[i + 1] == '^')
+                    {
+                        allowcaret = true;
+                    }
+                    else if (i + 1 == commandLine.Length)
+                    {
+                        result.Append(chr);
+                        started = true;
+                        escaped = false;
+                    }
+                }
+                else if (escaped)
+                {
+                    result.Append(chr);
+                    started = true;
+                    escaped = false;
+                }
+                else if (chr == '"')
+                {
+                    quoted = !quoted;
+                    started = true;
+                }
+                else if (chr == '\\' && i + 1 < commandLine.Length && commandLine[i + 1] == '"')
+                {
+                    escaped = true;
+                }
+                else if (chr == ' ' && !quoted)
+                {
+                    if (started) yield return result.ToString();
+                    result.Clear();
+                    started = false;
+                }
+                else
+                {
+                    result.Append(chr);
+                    started = true;
+                }
+            }
+
+            if (started) yield return result.ToString();
+        }
 
         private static void TraceCommand(params object?[] args)
         {
@@ -301,76 +368,18 @@ namespace Tests
             int opt1=1, int opt2=2)
         {
             TraceCommand();
-            CLI.ParseResult.ValidateMutuallyExclusiveOptions(["opt1", "opt2"]);
-            CLI.ParseResult.ValidateMutuallyExclusiveOptions(["opt1", "prop"]);
-            CLI.ParseResult.ValidateMutuallyExclusiveOptions(["opt2", "global-option-field"], ["validate-mutually-exclusive-options"]);
+            CLI.ParseResult.ValidateMutuallyExclusiveOptionsArguments(["opt1", "opt2"]);
+            CLI.ParseResult.ValidateMutuallyExclusiveOptionsArguments(["opt1", "prop"]);
+            CLI.ParseResult.ValidateMutuallyExclusiveOptionsArguments(["opt2", "global-option-field"], ["validate-mutually-exclusive-options"]);
         }
 
-
-
-        // https://stackoverflow.com/a/64236441
-        public static IEnumerable<string> SplitArgs(string commandLine)
+        [Command(mutuallyExclusuveOptionsArguments: "(opt1,opt2)(opt1,prop)(opt2,global-option-field)(opt2,arg1)")]
+        public static void ValidateMutuallyExclusiveOptions2(
+            int opt1 = 1, int opt2 = 2, [Argument] int arg1 = 3)
         {
-            var result = new StringBuilder();
-
-            var quoted = false;
-            var escaped = false;
-            var started = false;
-            var allowcaret = false;
-            for (int i = 0; i < commandLine.Length; i++)
-            {
-                var chr = commandLine[i];
-
-                if (chr == '^' && !quoted)
-                {
-                    if (allowcaret)
-                    {
-                        result.Append(chr);
-                        started = true;
-                        escaped = false;
-                        allowcaret = false;
-                    }
-                    else if (i + 1 < commandLine.Length && commandLine[i + 1] == '^')
-                    {
-                        allowcaret = true;
-                    }
-                    else if (i + 1 == commandLine.Length)
-                    {
-                        result.Append(chr);
-                        started = true;
-                        escaped = false;
-                    }
-                }
-                else if (escaped)
-                {
-                    result.Append(chr);
-                    started = true;
-                    escaped = false;
-                }
-                else if (chr == '"')
-                {
-                    quoted = !quoted;
-                    started = true;
-                }
-                else if (chr == '\\' && i + 1 < commandLine.Length && commandLine[i + 1] == '"')
-                {
-                    escaped = true;
-                }
-                else if (chr == ' ' && !quoted)
-                {
-                    if (started) yield return result.ToString();
-                    result.Clear();
-                    started = false;
-                }
-                else
-                {
-                    result.Append(chr);
-                    started = true;
-                }
-            }
-
-            if (started) yield return result.ToString();
+            TraceCommand();
         }
+
     }
 
 }
