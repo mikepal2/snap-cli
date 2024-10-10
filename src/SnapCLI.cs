@@ -33,9 +33,9 @@ namespace SnapCLI
 
         public DescKind Kind { get; }
         public string? Name { get; }
-        public string? HelpName { get; }
-        public string[]? Aliases { get; }
         public string? Description { get; }
+        public string[]? Aliases { get; }
+        public string? HelpName { get; }
         public bool IsHidden { get; }
         public bool IsRequired { get; }
         public string? MutuallyExclusuveOptionsArguments { get; }
