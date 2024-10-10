@@ -44,7 +44,7 @@ namespace SnapCLI
         // only allow to use this attribute in subclasses
         private DescriptorAttribute() { }
 
-        protected DescriptorAttribute(DescKind kind, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false, string? mutuallyExclusuveOptionsArguments = null)
+        protected DescriptorAttribute(DescKind kind, string? name = null, string? description = null, string? aliases = null, string? helpName = null, bool hidden = false, bool required = false, string? mutuallyExclusuveOptionsArguments = null)
         {
             Kind = kind;
             Name = name;
@@ -56,8 +56,8 @@ namespace SnapCLI
             Aliases = SplitAliases(aliases);
         }
 
-        protected DescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false, string? mutuallyExclusuveOptionsArguments = null)
-            : this(kind, name, helpName, aliases, description, hidden, required, mutuallyExclusuveOptionsArguments)
+        protected DescriptorAttribute(DescKind kind, int arityMin, int arityMax, string? name = null, string? description = null, string? aliases = null, string? helpName = null, bool hidden = false, bool required = false, string? mutuallyExclusuveOptionsArguments = null)
+            : this(kind, name: name, description: description, aliases: aliases, helpName: helpName, hidden: hidden, required: required, mutuallyExclusuveOptionsArguments: mutuallyExclusuveOptionsArguments)
         {
             Arity = new ArgumentArity(arityMin, arityMax);
         }
@@ -115,13 +115,13 @@ namespace SnapCLI
         /// Declares the CLI <b>option</b> definition.
         /// </summary>
         /// <param name="name">The name of the option.</param>
-        /// <param name="helpName">The name of the option value.</param>
-        /// <param name="aliases">A list of aliases for the option, separated by spaces, commas, semicolons, or pipe characters.</param>
         /// <param name="description">A description of the option.</param>
+        /// <param name="aliases">A list of aliases for the option, separated by spaces, commas, semicolons, or pipe characters.</param>
+        /// <param name="helpName">The name of the option value.</param>
         /// <param name="hidden">Hidden options are not shown in help, but they can still be used on the command line.</param>
         /// <param name="required">Required options must always be specified on the command line.</param>
-        public OptionAttribute(string? name = null, string? helpName = null, string? aliases = null, string? description = null, bool hidden = false, bool required = false)
-            : base(DescKind.Option, name, helpName, aliases, description, hidden, required) { }
+        public OptionAttribute(string? name = null, string? description = null, string? aliases = null, string? helpName = null, bool hidden = false, bool required = false)
+            : base(DescKind.Option, name: name, description: description, aliases: aliases, helpName: helpName, hidden: hidden, required: required) { }
 
         /// <summary>
         /// Declares the CLI <b>option</b> definition.
@@ -129,13 +129,13 @@ namespace SnapCLI
         /// <param name="arityMin">The minimum number of values an option can receive.</param>
         /// <param name="arityMax">The maximum number of values an option can receive.</param>
         /// <param name="name">The name of the option.</param>
-        /// <param name="helpName">The name of the option value.</param>
-        /// <param name="aliases">A list of aliases for the option, separated by spaces, commas, semicolons, or pipe characters.</param>
         /// <param name="description">A description of the option.</param>
+        /// <param name="aliases">A list of aliases for the option, separated by spaces, commas, semicolons, or pipe characters.</param>
+        /// <param name="helpName">The name of the option value.</param>
         /// <param name="hidden">Hidden options are not shown in help, but they can still be used on the command line.</param>
         /// <param name="required">Required options must always be specified on the command line.</param>
-        public OptionAttribute(int arityMin, int arityMax, string? aliases, string? name = null, string? helpName = null,  string? description = null, bool hidden = false, bool required = false)
-            : base(DescKind.Option, arityMin, arityMax, name, helpName, aliases, description, hidden, required) { }
+        public OptionAttribute(int arityMin, int arityMax, string? name = null, string? description = null, string? aliases = null, string? helpName = null,  bool hidden = false, bool required = false)
+            : base(DescKind.Option, arityMin: arityMin, arityMax: arityMax, name: name, description: description, aliases: aliases, helpName: helpName, hidden: hidden, required: required) { }
     }
 
     /// <summary>
@@ -165,11 +165,11 @@ namespace SnapCLI
         /// Declares the <b>argument</b> definition for a CLI command.
         /// </summary>
         /// <param name="name">The name of the argument.</param>
-        /// <param name="helpName">The name of the argument as displayed in help.</param>
         /// <param name="description">A description of the argument.</param>
+        /// <param name="helpName">The name of the argument as displayed in help.</param>
         /// <param name="hidden">Hidden arguments are not shown in help but can still be used.</param>
-        public ArgumentAttribute(string? name = null, string? helpName = null, string? description = null, bool hidden = false)
-            : base(DescKind.Argument, name, helpName, aliases: null, description, hidden) { }
+        public ArgumentAttribute(string? name = null, string? description = null, string? helpName = null, bool hidden = false)
+            : base(DescKind.Argument, name: name, description: description, aliases: null, helpName: helpName, hidden: hidden) { }
 
         /// <summary>
         /// Declares the <b>argument</b> definition for a CLI command.
@@ -177,11 +177,11 @@ namespace SnapCLI
         /// <param name="arityMin">The minimum number of values an argument can receive.</param>
         /// <param name="arityMax">The maximum number of values an argument can receive.</param>
         /// <param name="name">The name of the argument.</param>
-        /// <param name="helpName">The name of the argument as displayed in help.</param>
         /// <param name="description">A description of the argument.</param>
+        /// <param name="helpName">The name of the argument as displayed in help.</param>
         /// <param name="hidden">Hidden arguments are not shown in help but can still be used.</param>
-        public ArgumentAttribute(int arityMin, int arityMax, string? name = null, string? helpName = null, string? description = null, bool hidden = false)
-        : base(DescKind.Argument, arityMin, arityMax, name, helpName, aliases: null, description, hidden) { }
+        public ArgumentAttribute(int arityMin, int arityMax, string? name = null, string? description = null, string? helpName = null, bool hidden = false)
+        : base(DescKind.Argument, arityMin, arityMax, name: name, description: description, aliases: null, helpName: helpName, hidden: hidden) { }
     }
 
     /// <summary>
@@ -246,12 +246,12 @@ namespace SnapCLI
         /// Declares a handler for the CLI <see cref="Command"/>.
         /// </summary>
         /// <param name="name">The name of the command.</param>
-        /// <param name="aliases">A list of aliases for the command. This can be a string where aliases are separated by spaces, commas, semicolons, or pipe characters.</param>
         /// <param name="description">A description of the command.</param>
+        /// <param name="aliases">A list of aliases for the command. This can be a string where aliases are separated by spaces, commas, semicolons, or pipe characters.</param>
         /// <param name="hidden">Hidden commands are not shown in help but can still be used.</param>
         /// <param name="mutuallyExclusuveOptionsArguments">List of mutually exclusive options/arguments names separated by spaces, commas, semicolons, or pipe characters. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1)</param>
-        public CommandAttribute(string? name = null, string? aliases = null, string? description = null, bool hidden = false, string? mutuallyExclusuveOptionsArguments = null) 
-            : base(DescKind.Command, name: name, aliases: aliases, description: description, hidden: hidden, mutuallyExclusuveOptionsArguments: mutuallyExclusuveOptionsArguments)
+        public CommandAttribute(string? name = null, string? description = null, string? aliases = null, bool hidden = false, string? mutuallyExclusuveOptionsArguments = null) 
+            : base(DescKind.Command, name: name, description: description, aliases: aliases, hidden: hidden, mutuallyExclusuveOptionsArguments: mutuallyExclusuveOptionsArguments)
         {
         }
     }
