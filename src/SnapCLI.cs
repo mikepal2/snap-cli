@@ -201,7 +201,7 @@ namespace SnapCLI
     /// </code>
     /// </example>
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method|AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Method|AttributeTargets.Assembly)]
     public class RootCommandAttribute : DescriptorAttribute  {
         /// <summary>
         /// Declares handler for <see cref="RootCommand"/>, i.e. command that executed when no subcommands are present on the command line. Only one method may be declared with this attribute.
@@ -240,7 +240,7 @@ namespace SnapCLI
     /// <item><description>If the name is specified and contains spaces, it describes a subcommand. For example, <c>order list</c> is the subcommand <b>list</b> of the <b>order</b> command.</description></item>
     /// </list>  
     /// </remarks>
-    [AttributeUsage(AttributeTargets.Method|AttributeTargets.Class, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Method|AttributeTargets.Assembly, AllowMultiple = true)]
     public class CommandAttribute : DescriptorAttribute {
         /// <summary>
         /// Declares a handler for the CLI <see cref="Command"/>.
@@ -692,10 +692,10 @@ namespace SnapCLI
             Parser = builder.Build();
         }
 
-        // find [RootCommand] and [Command] attributes declared on class
+        // find [RootCommand] and [Command] attributes declared on assembly (commands without handlers)
         private static List<DescriptorAttribute> GetGlobalDescriptors(Assembly assembly, BindingFlags bindingFlags)
         {
-            return assembly.GetTypes().SelectMany(t => GetCustomAttributes<Type, DescriptorAttribute>(t)).ToList();
+            return GetCustomAttributes<Assembly, DescriptorAttribute>(assembly).ToList();
         }
 
         // find methods declared with [RootCommand] or [Command] attributes

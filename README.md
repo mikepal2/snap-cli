@@ -178,8 +178,10 @@ For comparison, here is the complete equivalent code using SnapCLI library.
 ```csharp
 using SnapCLI;
 
-[RootCommand(description: "Sample app for SnapCLI")]
-[Command(name: "quotes", description: "Work with a file that contains quotes.")]
+// these commands have no associated handler methods, and therefore declared at assembly level
+[assembly: RootCommand(description: "Sample app for SnapCLI")]
+[assembly: Command(name: "quotes", description: "Work with a file that contains quotes.")]
+
 class Program
 {
     // global option with validation
@@ -244,7 +246,7 @@ class Program
 ```
 </details>&nbsp;
 
-Take a note that there is no any code related to command line configuration - only metadata, and metadata in most cases directly connected to the entity it defines. The default values are exactly where they are expected to be. The binding is automatic and there is way to make binding errors.
+In this example, there is no code related to command-line configuration — only metadata that is directly connected to the entity it describes. The default values are exactly where they are expected to be. The binding is automatic, and there is no way to create binding errors.
 
 </details>&nbsp;
 
@@ -599,15 +601,18 @@ Hello World!
 ```
 
 ## Commands without handlers
-In the output above we have description for the `hello world` command, but not for the `hello`. To describe the `hello` command without assigning a handler method you may use `[Command()]` attribute at the top of the class containing handler methods.
+In the output above we have description for the `hello world` command, but not for the `hello`. To describe the `hello` command without assigning a handler method you may use `[assembly: Command()]` attribute at the top of the program source.
 
-Similarly, you can provide description for the root command (the first description in the output above) using `[RootCommand()]` attribute at the top of the containing class.
+Similarly, you can provide description for the root command (the first description in the output above) using `[assembly: RootCommand()]` attribute.
 
 With descriptions provided as shown in the following example, the help output will be complete.
 
 ```csharp
-[RootCommand(description: "This is a sample program")] // or [assembly: AssemblyDescription(description: "This is sample program")]
-[Command(name: "hello", description: "This command greets someone", aliases: "hi,hola,bonjour")]
+using SnapCLI;
+
+[assembly: RootCommand(description: "This is a sample program")] // or [assembly: AssemblyDescription(description: "This is sample program")]
+[assembly: Command(name: "hello", description: "This command greets someone", aliases: "hi,hola,bonjour")]
+
 class Program
 {
     [Command(description:"This command greets the world!")]
@@ -619,9 +624,11 @@ class Program
 ```
 # Advanced Usage
 
-The main goal of the library is to simplify the development of POSIX-like CLI applications. The library takes responsibility for the initialization, and execution of the application, eliminating the need for any startup boilerplate code. You don't even need to write a [Main](#main-method) method for the application.
+The main goal of the library is to simplify the development of POSIX-like CLI applications. The library takes responsibility for the initialization and execution of the application, eliminating the need for any startup boilerplate code. You don't even need to write a [Main](#main-method) method for the application.
 
-However, for advanced scenarios, the library still allows for fine control over initialization, execution, and exception handling. The steps during CLI initialization and execution are as follows:
+However, for more complex CLI applications, the library allows for fine control over initialization, execution, and exception handling.
+
+Here are the steps of the CLI application initialization and execution lifecycle with the `SnapCLI` library:
 
 1. The `SnapCLI` library entry point is executed (see notes about [Main](#main-method) method).
 1. The library scans the assembly for `[RootCommand]`, `[Command]`, `[Option]`, `[Argument]`, and `[Startup]` attributes.
@@ -657,7 +664,7 @@ If you still really need to use your own `Main`, you can do so with following st
     ```
 
 ## Startup
-The public static method can be declared to perform additional initialization using `[Startup]` attribute. There could be multiple startup methods in the assembly. These methods will be executed before command line is parsed. 
+The public static method can be declared to perform additional initialization using `[Startup]` attribute. There could be multiple startup methods in the assembly. These methods will be executed *before* command line is parsed. 
 
 The startup method is recognized by its attribute rather than its name; in other words, you can name it anything you like.
 

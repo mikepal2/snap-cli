@@ -3,9 +3,11 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.Text;
 using System.Text.RegularExpressions;
+
+[assembly: Command("level1cmd")]
+
 namespace Tests
 {
-    [Command("level1cmd")]
     [TestClass]
     public class UnitTest1
     {
