@@ -16,7 +16,7 @@ While the `System.CommandLine` library provides all the necessary APIs to parse 
 
 <details><summary>See details and examples</summary>&nbsp;
 
-Let's take a look at the example from [System.CommandLine documentation](https://learn.microsoft.com/en-us/dotnet/standard/commandline/get-started-tutorial).
+Let's take a look at the example from [System.CommandLine documentation](https://learn.microsoft.com/en-us/dotnet/standard/commandline/get-started-tutorial#add-subcommands-and-custom-validation).
 
 <details>
 <summary>System.CommandLine sample code</summary>
