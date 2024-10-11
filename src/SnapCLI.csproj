@@ -6,14 +6,14 @@
 		<LangVersion>8.0</LangVersion>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Authors>Michael Pavlushik</Authors>
-		<Description>This package includes SnapCLI app model for System.CommandLine, which allows you to create a command line application with declarations by attributes while getting support for complex type binding, error reporting, help, shell completions, and more.</Description>
+		<Description>Quickly create POSIX-like Command Line Interface (CLI) applications using a simple metadata API built on top of the System.CommandLine library.</Description>
 		<RepositoryUrl>https://github.com/mikepal2/snap-cli</RepositoryUrl>
-		<Version>1.0.5-pre</Version>
+		<Version>1.1.0-pre</Version>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
-		<PackageTags>Snap CLI Command Line Interface CommandLine Simple Easy</PackageTags>
-		<PackageReleaseNotes>Added custom exception handler support</PackageReleaseNotes>
+		<PackageTags>Snap CLI Command Line Interface CommandLine Quick Simple Easy</PackageTags>
+		<PackageReleaseNotes>Unified and streamlined the API; added new features.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
