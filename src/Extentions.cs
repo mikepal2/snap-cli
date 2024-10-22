@@ -14,15 +14,15 @@ namespace SnapCLI
         /// <summary>
         /// Validates that only one of specified options appear on command line.
         /// </summary>
-        /// <param name="parseResult">Command line parse result.</param>
-        /// <param name="mutuallyExclusiveOptionsArguments">List of mutually exclusive options/arguments names. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1).</param>
-        /// <param name="commands">Optional list of commands this validation applies. If not specified, validation applies to all commands.</param>
-        /// <exception cref="ArgumentException">When there are mutually exclusive options found on command line.</exception>
-        /// <exception cref="ArgumentNullException">Option name or command name is <code>null</code>.</exception>
+        /// <param name = "parseResult">Command line parse result.</param>
+        /// <param name = "mutuallyExclusiveOptionsArguments">List of mutually exclusive options/arguments names. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1).</param>
+        /// <param name = "commands">Optional list of commands this validation applies. If not specified, validation applies to all commands.</param>
+        /// <exception cref = "ArgumentException">When there are mutually exclusive options found on command line.</exception>
+        /// <exception cref = "ArgumentNullException">Option name or command name is <code>null</code>.</exception>
         public static void ValidateMutuallyExclusiveOptionsArguments(this ParseResult parseResult, string mutuallyExclusiveOptionsArguments, string[]? commands = null)
         {
             var groups = Regex.Split(mutuallyExclusiveOptionsArguments, @"(?<=[)])")
-                .Select(x => x.Trim(DescriptorAttribute.NameListDelimiters))
+                .Select(x => x.Trim(CLI.NameListDelimiters))
                 .Where(x => x != "")
                 .ToArray();
 
@@ -38,7 +38,7 @@ namespace SnapCLI
                 if (group.Contains('(') || group.Contains(')'))
                     throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses) " + mutuallyExclusiveOptionsArguments);
 
-                var optionsList = group.Split(DescriptorAttribute.NameListDelimiters, StringSplitOptions.RemoveEmptyEntries);
+                var optionsList = group.Split(CLI.NameListDelimiters, StringSplitOptions.RemoveEmptyEntries);
                 if (optionsList.Length == 0)
                     continue;
 
@@ -49,11 +49,11 @@ namespace SnapCLI
         /// <summary>
         /// Validates that only one of specified options appear on command line.
         /// </summary>
-        /// <param name="parseResult">Command line parse result.</param>
-        /// <param name="mutuallyExclusiveOptionsArguments">List of mutually exclusive options/arguments names.</param>
-        /// <param name="commands">Optional list of commands this validation applies. If not specified, validation applies to all commands.</param>
-        /// <exception cref="ArgumentException">When there are mutually exclusive options found on command line.</exception>
-        /// <exception cref="ArgumentNullException">Option name or command name is <code>null</code>.</exception>
+        /// <param name = "parseResult">Command line parse result.</param>
+        /// <param name = "mutuallyExclusiveOptionsArguments">List of mutually exclusive options/arguments names.</param>
+        /// <param name = "commands">Optional list of commands this validation applies. If not specified, validation applies to all commands.</param>
+        /// <exception cref = "ArgumentException">When there are mutually exclusive options found on command line.</exception>
+        /// <exception cref = "ArgumentNullException">Option name or command name is <code>null</code>.</exception>
         public static void ValidateMutuallyExclusiveOptionsArguments(this ParseResult parseResult, string[] mutuallyExclusiveOptionsArguments, string[]? commands = null)
         {
             if (mutuallyExclusiveOptionsArguments == null || mutuallyExclusiveOptionsArguments.Length == 0)
@@ -72,7 +72,8 @@ namespace SnapCLI
 
             var commandLineArgs = parseResult.RootCommandResult.Children // cannot access option.IsGlobal(), assume all options of root command are global options
                     .Concat(parseResult.CommandResult.Children) // command options
-                    .Select(r => {
+                    .Select(r =>
+                    {
                         if (r is ArgumentResult argResult
                             && argResult.Tokens.Count > 0
                             && mutuallyExclusiveOptionsArguments.Any(name => argResult.Argument.NameEquals(name ?? throw new ArgumentNullException(nameof(name)))))
@@ -94,20 +95,20 @@ namespace SnapCLI
         /// <summary>
         /// Find option by specified name or <code>null</code> if command has no such option.
         /// </summary>
-        /// <param name="command"></param>
-        /// <param name="name">Option name or alias to find.</param>
+        /// <param name = "command"></param>
+        /// <param name = "name">Option name or alias to find.</param>
         /// <returns>Option matching specified name or <code>null</code> if command has no such option.</returns>
         public static Option? GetOption(this Command command, string name)
         {
             return command.Options.FirstOrDefault(opt => opt.NameEquals(name));
         }
-        
+
         /// <summary>
         /// Find command by name.
         /// </summary>
-        /// <param name="command">Root command to start search, usually RootCommand.</param>
-        /// <param name="name">Full name of command to find. Subcommands are separated by spaces.</param>
-        /// <returns>Command matching the <paramref name="name"/></returns>
+        /// <param name = "command">Root command to start search, usually RootCommand.</param>
+        /// <param name = "name">Full name of command to find. Subcommands are separated by spaces.</param>
+        /// <returns>Command matching the <paramref name = "name"/></returns>
         public static Command? GetCommand(this Command? command, string name)
         {
             foreach (var subcommandName in name.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
@@ -122,13 +123,13 @@ namespace SnapCLI
         /// <summary>
         /// Return command full name including parents.
         /// </summary>
-        /// <param name="command"></param>
+        /// <param name = "command"></param>
         /// <returns>Command full name including parents.</returns>
         public static string FullName(this Command command)
         {
             var name = command.Name;
             Symbol? parent = command;
-            while (parent != null) 
+            while (parent != null)
             {
                 parent = parent.Parents.OfType<Command>().FirstOrDefault();
                 if (parent is RootCommand)
@@ -142,8 +143,8 @@ namespace SnapCLI
         /// <summary>
         /// Compares symbol name taking into account any aliases and full names.
         /// </summary>
-        /// <param name="symbol"><see cref="Command"/>, <see cref="Option"/> or <see cref="Argument"/>.</param>
-        /// <param name="name">Name to match.</param>
+        /// <param name = "symbol"><see cref = "Command"/>, <see cref = "Option"/> or <see cref = "Argument"/>.</param>
+        /// <param name = "name">Name to match.</param>
         /// <returns>True if symbol has matching name or alias.</returns>
         public static bool NameEquals(this Symbol symbol, string name)
         {

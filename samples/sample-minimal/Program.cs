@@ -18,7 +18,7 @@ internal class Program
 /* This program will produce output:
 
 > sample-minimal.exe --help
-Description:
+Description=
 
 Usage:
   sample-minimal [options]

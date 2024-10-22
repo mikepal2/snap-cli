@@ -3,21 +3,21 @@
 // Example of simple CLI program 
 
 // this description will be shown on main (root command) help 
-[assembly: RootCommand("Inventory database manager")]
+[assembly: RootCommand(Description = "Inventory database manager")]
 
 internal class Program
 {
     // Here we declare global option
-    [Option(name:"database", description:"Inventory database file", aliases:"db", helpName:"filepath")]
+    [Option(Name = "database", Description = "Inventory database file", Aliases = "db", HelpName = "filepath")]
     private static string s_databasePath = "inventory.json";
-    
 
-    [Command(description:"Add item to the inventory")]
+
+    [Command(Description = "Add item to the inventory")]
     public static void Add(
-        [Argument(description:"Inventory item name")] 
-        string item, 
+        [Argument(Description = "Inventory item name")]
+        string item,
 
-        [Argument(description:"Item quantity to add")] 
+        [Argument(Description = "Item quantity to add")]
         int quantity = 1)
     {
         using var inventory = new Inventory(s_databasePath);
@@ -31,15 +31,15 @@ internal class Program
 
     }
 
-    [Command(description: "Remove item from the inventory")]
+    [Command(Description = "Remove item from the inventory")]
     public static int Remove(
-        [Option(description:"Remove all specified items from the inventory")]
+        [Option(Description = "Remove all specified items from the inventory")]
         bool all,
 
-        [Argument(description:"Inventory item name")]
+        [Argument(Description = "Inventory item name")]
         string item,
 
-        [Argument(description:"Item quantity to remove")]
+        [Argument(Description = "Item quantity to remove")]
         int quantity = 1
         )
     {
@@ -81,9 +81,9 @@ internal class Program
         JSON
     }
 
-    [Command(description: "List items in the inventory")]
+    [Command(Description = "List items in the inventory")]
     public static void List(
-        [Option(name:"format", aliases:"f", description:"Output format")]
+        [Option(Name = "format", Aliases = "f", Description = "Output format")]
         ListFormat listFormat = ListFormat.Text
         )
     {
@@ -109,7 +109,7 @@ internal class Program
     }
 
     // hidden command will not be shown in help
-    [Command(description: "Dump internal database representation (JSON)", hidden: true)]
+    [Command(Description = "Dump internal database representation (JSON)", Hidden = true)]
     public static void Dump()
     {
         using var inventory = new Inventory(s_databasePath);

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk = "Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
@@ -8,24 +8,24 @@
 		<Authors>Michael Pavlushik</Authors>
 		<Description>Quickly create POSIX-like Command Line Interface (CLI) applications using a simple metadata API built on top of the System.CommandLine library.</Description>
 		<RepositoryUrl>https://github.com/mikepal2/snap-cli</RepositoryUrl>
-		<Version>1.1.0-pre</Version>
+		<Version>2.0.0-pre</Version>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
-		<PackageTags>Snap CLI Command Line Interface CommandLine Quick Simple Easy</PackageTags>
-		<PackageReleaseNotes>Unified and streamlined the API; added new features.</PackageReleaseNotes>
+		<PackageTags>Snap CLI Command Line Interface CommandLine Framework Quick Simple Easy</PackageTags>
+		<PackageReleaseNotes>Streamlined the API.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+		<PackageReference Include = "System.CommandLine" Version = "2.0.0-beta4.22272.1" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="build/*" PackagePath="build/$(TargetFramework)" />
+		<Content Include = "build/*" PackagePath = "build/$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Include="..\README.md">
+	  <None Include = "..\README.md">
 	    <Pack>True</Pack>
 	    <PackagePath>\</PackagePath>
 	  </None>

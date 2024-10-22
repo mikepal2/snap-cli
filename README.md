@@ -29,8 +29,8 @@ class Program
     static async Task<int> Main(string[] args)
     {
         var fileOption = new Option<FileInfo?>(
-            name: "--file",
-            description: "An option whose argument is parsed as a FileInfo",
+            Name= "--file",
+            Description= "An option whose argument is parsed as a FileInfo",
             isDefault: true,
             parseArgument: result =>
             {
@@ -52,31 +52,31 @@ class Program
             });
 
         var delayOption = new Option<int>(
-            name: "--delay",
-            description: "Delay between lines, specified as milliseconds per character in a line.",
+            Name= "--delay",
+            Description= "Delay between lines, specified as milliseconds per character in a line.",
             getDefaultValue: () => 42);
 
         var fgcolorOption = new Option<ConsoleColor>(
-            name: "--fgcolor",
-            description: "Foreground color of text displayed on the console.",
+            Name= "--fgcolor",
+            Description= "Foreground color of text displayed on the console.",
             getDefaultValue: () => ConsoleColor.White);
 
         var lightModeOption = new Option<bool>(
-            name: "--light-mode",
-            description: "Background color of text displayed on the console: default is black, light mode is white.");
+            Name= "--light-mode",
+            Description= "Background color of text displayed on the console: default is black, light mode is white.");
 
         var searchTermsOption = new Option<string[]>(
-            name: "--search-terms",
-            description: "Strings to search for when deleting entries.")
+            Name= "--search-terms",
+            Description= "Strings to search for when deleting entries.")
         { IsRequired = true, AllowMultipleArgumentsPerToken = true };
 
         var quoteArgument = new Argument<string>(
-            name: "quote",
-            description: "Text of quote.");
+            Name= "quote",
+            Description= "Text of quote.");
 
         var bylineArgument = new Argument<string>(
-            name: "byline",
-            description: "Byline of quote.");
+            Name= "byline",
+            Description= "Byline of quote.");
 
         var rootCommand = new RootCommand("Sample app for System.CommandLine");
         rootCommand.AddGlobalOption(fileOption);
@@ -179,13 +179,13 @@ For comparison, here is the complete equivalent code using SnapCLI library.
 using SnapCLI;
 
 // these commands have no associated handler methods, and therefore declared at assembly level
-[assembly: RootCommand(description: "Sample app for SnapCLI")]
-[assembly: Command(name: "quotes", description: "Work with a file that contains quotes.")]
+[assembly: RootCommand(Description= "Sample app for SnapCLI")]
+[assembly: Command(Name= "quotes", Description= "Work with a file that contains quotes.")]
 
 class Program
 {
     // global option with validation
-    [Option(name: "file", description: "An option whose argument is parsed as a FileInfo")]
+    [Option(Name= "file", Description= "An option whose argument is parsed as a FileInfo")]
     public static FileInfo file  {
         get { return _file; }
         set {
@@ -196,15 +196,15 @@ class Program
     }
     private static FileInfo _file = new FileInfo("sampleQuotes.txt");
 
-    [Command(name: "quotes read", description: "Read and display the file.")]
+    [Command(Name= "quotes read", Description= "Read and display the file.")]
     public static async Task ReadFile(
-        [Option(description: "Delay between lines, specified as milliseconds per character in a line.")]   
+        [Option(Description= "Delay between lines, specified as milliseconds per character in a line.")]   
         int delay = 42,
         
-        [Option(name: "fgcolor", description: "Foreground color of text displayed on the console.")]
+        [Option(Name= "fgcolor", Description= "Foreground color of text displayed on the console.")]
         ConsoleColor fgColor = ConsoleColor.White,
         
-        [Option(description: "Background color of text displayed on the console: default is black, light mode is white.")]
+        [Option(Description= "Background color of text displayed on the console: default is black, light mode is white.")]
         bool lightMode = false)
     {
         Console.BackgroundColor = lightMode ? ConsoleColor.White : ConsoleColor.Black;
@@ -218,9 +218,9 @@ class Program
 
     }
 
-    [Command(name: "quotes delete", description: "Delete lines from the file.")]
+    [Command(Name= "quotes delete", Description= "Delete lines from the file.")]
     internal static void DeleteFromFile(
-        [Option(description: "Strings to search for when deleting entries.")] string[] searchTerms
+        [Option(Description= "Strings to search for when deleting entries.")] string[] searchTerms
         )
     {
         Console.WriteLine("Deleting from file");
@@ -229,10 +229,10 @@ class Program
                 .Where(line => searchTerms.All(s => !line.Contains(s))).ToList());
     }
 
-    [Command(name: "quotes add", description: "Add an entry to the file.", aliases: "insert")]
+    [Command(Name= "quotes add", Description= "Add an entry to the file.", Aliases= "insert")]
     internal static void AddToFile(
-        [Argument(description: "Text of quote.")]   string quote,
-        [Argument(description: "Byline of quote.")] string byline
+        [Argument(Description= "Text of quote.")]   string quote,
+        [Argument(Description= "Byline of quote.")] string byline
         )
     {
         Console.WriteLine("Adding to file");
@@ -294,7 +294,7 @@ public static void Hello()
 Additional information can be provided in attribute parameters to enhance command-line parsing and the help system, such as the command's explicit name, aliases, description, and whether the command is hidden
 
 ```csharp
-[Command(name:"hello", aliases:"hi,hola,bonjour", description:"Hello example", hidden:false)]
+[Command(Name = "hello", Aliases = "hi,hola,bonjour", Description = "Hello example", hidden:false)]
 public static void Hello() 
 {
     Console.WriteLine("Hello World!");
@@ -306,7 +306,7 @@ Async handler methods are also supported.
 The library supports handler methods with the following return types: `void`, `int`, `Task<int>`, `Task`, `ValueTask<int>`, and `ValueTask`. The result from handlers returning `int`, `Task<int>`, and `ValueTask<int>` is used as the program's exit code.
 
 ```csharp
-[Command(name:"sleep", description:"Async sleep example")]
+[Command(Name = "sleep", Description = "Async sleep example")]
 public static async Task<int> Sleep(int milliseconds = 1000)
 {
     Console.WriteLine("Sleeping...");
@@ -318,11 +318,11 @@ public static async Task<int> Sleep(int milliseconds = 1000)
 
 **Command name convention**
 
-- If the `[Command]` attribute does not specify a command name:
+- If the `[Command]` attribute does not specify a command Name=
   - If this is the only command in the program, it is automatically treated as the [root command](#root-command).
   - If there are multiple commands declared, the method name, converted to [kebab case](https://en.wikipedia.org/wiki/Letter_case#Kebab_case), is used as the command name. For example, the method `Hello()` will handle the `hello` command, while method `HelloWorld()` will handle `hello-world` commmand.
   - If the method name constains underscores (`_`), it declares a [subcommand](#subcommands). For example, a method named "order_create()" will define a subcommand `create` under the `order` command.
-- If the name specified in the `[Command]` attribute explicitly contains spaces, it declares a [subcommand](#subcommands). For example, `[Command(name:"order create")]` defines `create` as a subcommand of the `order` command.
+- If the name specified in the `[Command]` attribute explicitly contains spaces, it declares a [subcommand](#subcommands). For example, `[Command(Name = "order create")]` defines `create` as a subcommand of the `order` command.
 - Commands may have [aliases](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#aliases). These are usually short forms that are easier to type or alternate spellings of a word.
 - Command names and aliases are [case-sensitive](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#case-sensitivity). If you want your CLI to be case insensitive, define aliases for the various casing alternatives.
 
@@ -332,7 +332,7 @@ An [option](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax
 Any parameter of command handler method automatically becomes a command option. In the next example `name` becomes option for command `hello`:
 
 ```csharp
-[Command(name:"hello", aliases:"hi,hola,bonjour", description:"Hello example", hidden:false)]
+[Command(Name = "hello", Aliases = "hi,hola,bonjour", Description = "Hello example", hidden:false)]
 public static void Hello(string name = "World") 
 {
     Console.WriteLine($"Hello {name}!");
@@ -342,9 +342,9 @@ public static void Hello(string name = "World")
 Additional information about an option can be provided using the `[Option]` attribute, including an explicit name, aliases, a description, and whether the option is required.
 
 ```csharp
-[Command(name:"hello", aliases:"hi,hola,bonjour", description:"Hello example", hidden:false)]
+[Command(Name = "hello", Aliases = "hi,hola,bonjour", Description = "Hello example", hidden:false)]
 public static void Hello(
-    [Option(name:"name", description:"The name we should use for the greeting")]
+    [Option(Name = "name", Description = "The name we should use for the greeting")]
     string name = "World"
 ) 
 {
@@ -371,9 +371,9 @@ using SnapCLI;
 
 class Program
 {
-    [Command(name:"hello", description:"Hello example")]
+    [Command(Name = "hello", Description = "Hello example")]
     public static void Hello(
-        [Option(name:"name", description:"The name we should use for the greeting")]
+        [Option(Name = "name", Description = "The name we should use for the greeting")]
         string name = "World"
     ) 
     {
@@ -385,7 +385,7 @@ class Program
 We get complete help output:
 ```text
 > sample hello -?
-Description:
+Description=
   Hello example
 
 Usage:
@@ -414,9 +414,9 @@ An [argument](https://learn.microsoft.com/en-us/dotnet/standard/commandline/synt
 You can declare that a parameter is an argument using the `[Argument]` attribute. Let's change "Option" to "Argument" in our example:
 
 ```csharp
-[Command(name:"hello", description:"Hello example")]
+[Command(Name = "hello", Description = "Hello example")]
 public static void Hello(
-    [Argument(name:"name", description:"The name we should use for the greeting")]
+    [Argument(Name = "name", Description = "The name we should use for the greeting")]
     string name = "World"
 ) 
 {
@@ -433,7 +433,7 @@ Hello Michael!
 Also, note how the help message has changed:
 ```text
 > sample hello -?
-Description:
+Description=
   Hello example
 
 Usage:
@@ -456,9 +456,9 @@ You can provide options before arguments or arguments before options on the comm
 The [arity](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#argument-arity) of an option or command's argument is the number of values that can be passed if that option or command is specified. Arity is expressed with a minimum value and a maximum value.
 
 ```csharp
-[Command(name: "print", description: "Arity example")]
+[Command(Name= "print", Description= "Arity example")]
 public static void Print(
-    [Argument(name:"numbers", arityMin:1, arityMax:2, description:"Takes 1 or 2 numbers")]
+    [Argument(Name = "numbers", arityMin:1, arityMax:2, Description = "Takes 1 or 2 numbers")]
     int[] nums
 )
 {
@@ -471,7 +471,7 @@ public static void Print(
 
 ```text
 > sample print -?
-Description:
+Description=
   Arity example
 
 Usage:
@@ -501,15 +501,15 @@ By default, global options are not required because properties and fields always
 class Program
 {
     // This global option is not required and have explicit default value of "config.ini"
-    [Option(name:"config", description:"Configuration file name", aliases:"c,cfg")]
+    [Option(Name = "config", Description = "Configuration file name", Aliases = "c,cfg")]
     public static string ConfigFile = "config.ini";
 
     // This global option is not required and have implicit default value of (null)
-    [Option(name:"profile", description:"User profile")]
+    [Option(Name = "profile", Description = "User profile")]
     public static string Profile;
 
     // This global option is always required
-    [Option(name:"user", description:"User name", required:true)]
+    [Option(Name = "user", Description = "User name", required:true)]
     public static string User;
 
     ...
@@ -522,7 +522,7 @@ The [root command](https://learn.microsoft.com/en-us/dotnet/standard/commandline
 The description for the root command essentially serves as the program description in the help output, as shown when program is invoked with the `--help` parameter. If the root command is not declared, **SnapCLI** library will use the assembly description as the root command description.
 
 ```csharp
-[RootCommand(description: "This command greets the world!")]
+[RootCommand(Description= "This command greets the world!")]
 public static void Hello()
 {
     Console.WriteLine("Hello World!");
@@ -537,17 +537,17 @@ Any command may have multiple subcommands. As mentioned earlier, if command name
 In the following example we have a subcommand `world` of the command `hello`:
 
 ```csharp
-[Command(name:"hello world", description:"This command greets the world!")]
+[Command(Name = "hello world", Description = "This command greets the world!")]
 public static void Hello() 
 {
     Console.WriteLine("Hello World!");
 }
 ```
 
-Or equivalent using just method name:
+Or equivalent using just method Name=
 
 ```csharp
-[Command(description:"This command greets the world!")]
+[Command(Description = "This command greets the world!")]
 public static void hello_world() 
 {
     Console.WriteLine("Hello World!");
@@ -558,7 +558,7 @@ The usage output will be as follows:
 
 ```text
 > sample -?
-Description:
+Description=
 
 Usage:
   sample [command] [options]
@@ -572,7 +572,7 @@ Commands:
 ```
 ```text
 > sample hello -?
-Description:
+Description=
 
 Usage:
   sample hello [command] [options]
@@ -585,7 +585,7 @@ Commands:
 ```
 ```text
 > sample hello world -?
-Description:
+Description=
   This command greets the world!
 
 Usage:
@@ -610,12 +610,12 @@ With descriptions provided as shown in the following example, the help output wi
 ```csharp
 using SnapCLI;
 
-[assembly: RootCommand(description: "This is a sample program")] // or [assembly: AssemblyDescription(description: "This is sample program")]
-[assembly: Command(name: "hello", description: "This command greets someone", aliases: "hi,hola,bonjour")]
+[assembly: RootCommand(Description= "This is a sample program")] // or [assembly: AssemblyDescription(Description= "This is sample program")]
+[assembly: Command(Name= "hello", Description= "This command greets someone", Aliases= "hi,hola,bonjour")]
 
 class Program
 {
-    [Command(description:"This command greets the world!")]
+    [Command(Description = "This command greets the world!")]
     public static void hello_world() 
     {
         Console.WriteLine("Hello World!");
@@ -758,7 +758,7 @@ For global options validation may be implemented in setter.
 class Program
 {
     // global option with validation
-    [Option(name: "file", description: "An option whose argument is parsed as a FileInfo")]
+    [Option(Name= "file", Description= "An option whose argument is parsed as a FileInfo")]
     public static FileInfo file  {
         get { return _file; }
         set {
@@ -778,7 +778,7 @@ The library provides mechanisms to check for mutually exclusive options and argu
 
 * The `mutuallyExclusiveOptionsArguments` parameter of the `[Command]` attribute can be used to declare a list of mutually exclusive option/argument names separated by spaces, commas, semicolons, or pipe characters. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses.
   ```csharp
-  [Command(mutuallyExclusiveOptionsArguments="(opt1,opt2)(arg1,opt2)")]
+  [Command(mutuallyExclusiveOptionsArguments = "(opt1,opt2)(arg1,opt2)")]
   public static void command([Argument] int arg1 = 1, int opt1 = 1, int opt2 = 2) 
   {
       ...

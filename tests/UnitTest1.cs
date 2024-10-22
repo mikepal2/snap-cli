@@ -4,7 +4,7 @@ using System.CommandLine.Builder;
 using System.Text;
 using System.Text.RegularExpressions;
 
-[assembly: Command("level1cmd")]
+[assembly: Command(Name = "level1cmd")]
 
 namespace Tests
 {
@@ -246,11 +246,12 @@ namespace Tests
             CLI.BeforeCommand += (args) => { Out.WriteLine($"[before:{args.ParseResult.CommandResult.Command.Name}]"); };
             CLI.AfterCommand += (args) => { Out.WriteLine($"[after:{args.ParseResult.CommandResult.Command.Name}]"); };
 
-            CLI.ExceptionHandler = (exception) => {
+            CLI.ExceptionHandler = (exception) =>
+            {
                 // 
                 if (exception is not OperationCanceledException)
                     Out.WriteLine(exception);
-                
+
                 return 1; // exit code
             };
         }
@@ -270,11 +271,11 @@ namespace Tests
         }
 #endif
 
-        [Option] // implicit name: global-option-field
+        [Option] // implicit Name= global-option-field
         public static string? globalOptionField = globalOptionFieldDefaultValue;
         private const string globalOptionFieldDefaultValue = "globalOptionFieldDefaultValue";
 
-        [Option(name: "prop", helpName: "propHelpName", aliases: "propAlias", description: "Prop description")]
+        [Option(Name = "prop", HelpName = "propHelpName", Aliases = "propAlias", Description = "Prop description")]
         public static string? globalOptionProperty { get; set; } = globalOptionPropertyDefaultValue;
         private const string globalOptionPropertyDefaultValue = "globalOptionPropertyDefaultValue";
 
@@ -315,25 +316,25 @@ namespace Tests
             TraceCommand(globalOptionProperty);
         }
 
-        [RootCommand("Root description")]
+        [RootCommand(Description = "Root description")]
         public static void TestRoot()
         {
             TraceCommand();
         }
 
-        [Command(name: "test6", aliases: "TEST6", description: "Test6 description")]
+        [Command(Name = "test6", Aliases = "TEST6", Description = "Test6 description")]
         public static void Test6Handler(
-            [Option(name:"opt1name", helpName:"opt1help", aliases:"opt1alias,O", description:"opt1 description")]
+            [Option(Name = "opt1name", HelpName = "opt1help", Aliases = "opt1alias,O", Description = "opt1 description")]
             bool option1,
 
-            [Argument(name:"arg1name", helpName:"arg1help", description:"arg1 description")]
+            [Argument(Name = "arg1name", HelpName = "arg1help", Description = "arg1 description")]
             int argument1,
 
 
-            [Option(helpName: "opt2help", description: "opt2 description")]
+            [Option(HelpName= "opt2help", Description= "opt2 description")]
             int option2 = 1,
 
-            [Argument(helpName: "arg2help", description: "arg2 description")]
+            [Argument(HelpName= "arg2help", Description= "arg2 description")]
             string argument2 = "arg2"
             )
         {
@@ -359,15 +360,15 @@ namespace Tests
             return Task.FromResult(exitCode);
         }
 
-        [Command("level1cmd level2cmd")]
+        [Command(Name = "level1cmd level2cmd")]
         public static void level2cmd()
-        { 
+        {
             TraceCommand();
         }
 
         [Command]
         public static void ValidateMutuallyExclusiveOptions(
-            int opt1=1, int opt2=2)
+            int opt1 = 1, int opt2 = 2)
         {
             TraceCommand();
             CLI.ParseResult.ValidateMutuallyExclusiveOptionsArguments(["opt1", "opt2"]);
@@ -375,7 +376,7 @@ namespace Tests
             CLI.ParseResult.ValidateMutuallyExclusiveOptionsArguments(["opt2", "global-option-field"], ["validate-mutually-exclusive-options"]);
         }
 
-        [Command(mutuallyExclusuveOptionsArguments: "(opt1,opt2)(opt1,prop)(opt2,global-option-field)(opt2,arg1)")]
+        [Command(MutuallyExclusuveOptionsArguments = "(opt1,opt2)(opt1,prop)(opt2,global-option-field)(opt2,arg1)")]
         public static void ValidateMutuallyExclusiveOptions2(
             int opt1 = 1, int opt2 = 2, [Argument] int arg1 = 3)
         {
