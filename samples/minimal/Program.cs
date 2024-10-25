@@ -17,11 +17,11 @@ internal class Program
 
 /* This program will produce output:
 
-> sample-minimal.exe --help
-Description=
+> minimal.exe --help
+Description:
 
 Usage:
-  sample-minimal [options]
+  minimal [options]
 
 Options:
   --name <name>   [default: World]
@@ -29,10 +29,10 @@ Options:
   -?, -h, --help  Show help and usage information
 
 
-> sample-1-minimal.exe
+> minimal.exe
 Hello World!
 
-> sample-minimal.exe --name Joe
+> minimal.exe --name Joe
 Hello Joe!
   
 */
