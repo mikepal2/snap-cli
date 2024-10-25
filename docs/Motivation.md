@@ -1,3 +1,11 @@
+# Motivation
+
+While the Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command line arguments, it requires significant effort to set up the code before the program is ready to run. It also involves repetitive work in referencing the same objects from multiple places, making code maintenance difficult and error-prone.
+
+The goal of this project is to solve the problems highlighted below by providing developers with easy-to-use mechanisms while retaining the core functionality and features of `System.CommandLine`.
+
+## System.CommandLine Example
+
 Let's take a look at the example from [System.CommandLine documentation🗗](https://learn.microsoft.com/en-us/dotnet/standard/commandline/get-started-tutorial#add-subcommands-and-custom-validation).
 
 <details>
@@ -159,87 +167,13 @@ There are several problems with `System.CommandLine` API related to creating and
 
 For large CLI application (think of `dotnet` CLI) the amount and complexity of above code may grow enormously.
 
-For comparison, here is the complete functionally equivalent code using the SnapCLI library.
+## SnapCLI Example
+For comparison, [here](../samples/quotes/Program.cs) you can see the same code adapted to use the SnapCLI library. It is functionally equivalent, providing the same command line interface and producing the same output. Note how in this example:
 
-
-<details>
-<summary>SnapCLI sample code</summary>
-
-```csharp
-using SnapCLI;
-
-// these commands have no associated handler methods, and therefore declared at assembly level
-[assembly: RootCommand(Description = "Sample app for SnapCLI")]
-[assembly: Command(Name = "quotes", Description = "Work with a file that contains quotes.")]
-
-class Program
-{
-    // global option with validation
-    [Option(Name = "file", Description = "An option whose argument is parsed as a FileInfo")]
-    public static FileInfo file  {
-        get { return _file; }
-        set {
-            if (!value.Exists)
-                throw new FileNotFoundException($"Specified file not found", value.FullName);
-            _file = value; 
-        }
-    }
-    private static FileInfo _file = new FileInfo("sampleQuotes.txt");
-
-    [Command(Name = "quotes read", Description = "Read and display the file.")]
-    public static async Task ReadFile(
-        [Option(Description = "Delay between lines, specified as milliseconds per character in a line.")]   
-        int delay = 42,
-        
-        [Option(Name = "fgcolor", Description = "Foreground color of text displayed on the console.")]
-        ConsoleColor fgColor = ConsoleColor.White,
-        
-        [Option(Description = "Background color of text displayed on the console: default is black, light mode is white.")]
-        bool lightMode = false)
-    {
-        Console.BackgroundColor = lightMode ? ConsoleColor.White : ConsoleColor.Black;
-        Console.ForegroundColor = fgColor;
-        var lines = File.ReadLines(file.FullName).ToList();
-        foreach (string line in lines)
-        {
-            Console.WriteLine(line);
-            await Task.Delay(delay * line.Length);
-        };
-
-    }
-
-    [Command(Name = "quotes delete", Description = "Delete lines from the file.")]
-    internal static void DeleteFromFile(
-        [Option(Description = "Strings to search for when deleting entries.")] string[] searchTerms
-        )
-    {
-        Console.WriteLine("Deleting from file");
-        File.WriteAllLines(
-            file.FullName, File.ReadLines(file.FullName)
-                .Where(line => searchTerms.All(s => !line.Contains(s))).ToList());
-    }
-
-    [Command(Name = "quotes add", Description = "Add an entry to the file.", Aliases = "insert")]
-    internal static void AddToFile(
-        [Argument(Description = "Text of quote.")]   string quote,
-        [Argument(Description = "Byline of quote.")] string byline
-        )
-    {
-        Console.WriteLine("Adding to file");
-        using StreamWriter? writer = file.AppendText();
-        writer.WriteLine($"{Environment.NewLine}{Environment.NewLine}{quote}");
-        writer.WriteLine($"{Environment.NewLine}-{byline}");
-        writer.Flush();
-    }
-}
-
-```
-</details>&nbsp;
-
-Note that in this example:
-* There is no code needed for command-line configuration - only metadata directly connected to the entities it describes. 
-* Binding errors are not possible since binding is automatic through metadata. Should any changes to the handler method parameters be made, they will be automatically reflected to command line configuration. 
-* The option default values are specified as parameters default values, where they are logically expected.
+- There is no code needed for command-line configuration - only metadata directly connected to the entities it describes. As a result, the code is more compact and readable.
+- Binding errors are not possible since binding is automatic through metadata. Any changes to the handler method parameters will be automatically reflected in the command-line configuration.
+- In most cases, option names are inferred automatically from parameter names.
+- Default values for options are specified as parameter default values, where they are logically expected.
 
 
 
