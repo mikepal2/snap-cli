@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
-using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
@@ -191,6 +190,15 @@ namespace SnapCLI
         /// A comma-separaed list of mutually exclusive options/arguments names. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1)
         /// </summary>
         public string? MutuallyExclusuveOptionsArguments { get; set; }
+
+        /// <summary>
+        /// Specifies the type (class) containing static properties and/or fields declared with the [Option] attribute to be added as global options at the root command level.
+        /// </summary>
+        /// <remarks>
+        /// By default, all static properties and fields declared as options are automatically added global, unless their containing type is specified in <see cref="CommandAttribute.RecursiveOptionsContainingType"/>.
+        /// The GlobalOptionsContainingType allows to specify global options containing type explicitly.
+        /// </remarks>
+        public Type? GlobalOptionsContainingType { get; set; }
     }
 
     /// <summary>
@@ -245,6 +253,11 @@ namespace SnapCLI
         /// A comma-separaed list of mutually exclusive options/arguments names. If there are multiple groups of mutually exclusive options/arguments, they must be enclosed in parentheses. Example: (option1,option2)(option3,arg1)
         /// </summary>
         public string? MutuallyExclusuveOptionsArguments { get; set; }
+
+        /// <summary>
+        /// Specifies type (class) containing static properties and/or fields declared with [Option] attribute to be added as recursive options for the command.
+        /// </summary>
+        public Type? RecursiveOptionsContainingType { get; set; }
     }
 
     /// <summary>
@@ -442,12 +455,13 @@ namespace SnapCLI
 
         private class CommandDescriptor
         {
-            public string? SpecifiedName;
-            public string CommandName;
-            public string? Description;
-            public Attribute Attribute;
-            public MethodInfo? Method;
-            public string? MutuallyExclusuveOptionsArguments;
+            public readonly string? SpecifiedName;
+            public readonly string CommandName;
+            public readonly string? Description;
+            public readonly Attribute Attribute;
+            public readonly MethodInfo? Method;
+            public readonly string? MutuallyExclusuveOptionsArguments;
+            public readonly Type? RecursiveOptionsContainingType;
 
             public CommandDescriptor(CommandAttribute attribute, MethodInfo? method)
             {
@@ -459,6 +473,7 @@ namespace SnapCLI
                     ?? throw new AttributeUsageException($"[Command] attribute declared at assembly level must have Name property specified");
                 MutuallyExclusuveOptionsArguments = attribute.MutuallyExclusuveOptionsArguments;
                 Description = attribute.Description;
+                RecursiveOptionsContainingType = attribute.RecursiveOptionsContainingType;
             }
 
             public CommandDescriptor(RootCommandAttribute attribute, MethodInfo? method)
@@ -468,6 +483,7 @@ namespace SnapCLI
                 MutuallyExclusuveOptionsArguments = attribute.MutuallyExclusuveOptionsArguments;
                 Description = attribute.Description;
                 CommandName = RootCommand.ExecutableName;
+                RecursiveOptionsContainingType = attribute.GlobalOptionsContainingType;
             }
         }
 
@@ -547,6 +563,80 @@ namespace SnapCLI
             return GetBinding(commandLineObject) as ICustomAttributeProvider;
         }
 
+        // all recursive options, i.e. properties and fields described with [Option] attribute
+        private static readonly List<RecursiveOption> recursiveOptions;
+
+        private class RecursiveOption
+        {
+            public readonly Option CliOption;
+            public readonly MemberInfo Binding;
+            public readonly Type ContainingType;
+
+            public RecursiveOption(Type containingType, OptionAttribute attr, MemberInfo memberInfo)
+            {
+                switch (memberInfo)
+                {
+                    case PropertyInfo prop:
+                        if (!prop.CanWrite)
+                            throw new AttributeUsageException($"Property {prop.Name} declared as [Option] must be writable");
+                        if (!prop.SetMethod?.IsStatic == null)
+                            throw new AttributeUsageException($"Property {prop.Name} declared as [Option] must be static");
+                        CliOption = CreateOption(attr, prop.Name, prop.PropertyType, () => prop.GetValue(null));
+                        break;
+                    case FieldInfo field:
+                        if (field.IsInitOnly)
+                            throw new AttributeUsageException($"Field {field.Name} declared as [Option] must be writable");
+                        if (!field.IsStatic)
+                            throw new AttributeUsageException($"Field {field.Name} declared as [Option] must be static");
+                        CliOption = CreateOption(attr, field.Name, field.FieldType, () => field.GetValue(null));
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                ContainingType = containingType;
+                Binding = memberInfo;
+                _bindings.Add(CliOption, Binding);
+            }
+
+            public void SetValueFromCommandLine()
+            {
+                var optionResult = ParseResult.FindResultFor(CliOption);
+                if (optionResult == null)
+                    return;
+                var value = optionResult.GetValueOrDefault();
+                switch (Binding)
+                {
+                    case PropertyInfo prop:
+                        prop.SetValue(null, value);
+                        break;
+                    case FieldInfo field:
+                        field.SetValue(null, value);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+
+            public override string ToString()
+            {
+                string result;
+                string containingTypeName = GetFullTypeName(ContainingType);
+                switch (Binding)
+                {
+                    case PropertyInfo prop:
+                        result = $"Property {containingTypeName}:{prop.Name}";
+                        break;
+                    case FieldInfo field:
+                        result = $"Field {containingTypeName}:{field.Name}";
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+                return result;
+            }
+        };
+
         /// <summary>
         /// Static constructor, initializes commands hierarchy from attributes.
         /// </summary>
@@ -586,42 +676,24 @@ namespace SnapCLI
             if (commandDescriptors.Count == 0 && rootCommandDescriptor == null)
                 throw new AttributeUsageException("The CLI program must declare at least one method with [Command] or [RootCommand] attribute, see documentation https://github.com/mikepal2/snap-cli/blob/main/README.md");
 
+            // find all recursive options, i.e. properties and fields described with [Option] attribute
+            recursiveOptions = assembly.GetTypes().SelectMany(t => t.GetMembers(bindingFlags)
+                    .Where(x => x.IsDefined(typeof(OptionAttribute)))
+                    .Select(x => new RecursiveOption(t, GetCustomAttribute<MemberInfo, OptionAttribute>(x)!, x)))
+                    .ToList();
 
-            // find all global options, i.e. properties and fields described with [Option] attribute
-
-            var globalOptions = new List<Option>();
-            var globalOptionsInitializers = new List<Action<InvocationContext>>();
-
-            foreach (var (prop, desc) in assembly.GetTypes()
-                .SelectMany(t => t.GetProperties(bindingFlags))
-                .Where(x => x.IsDefined(typeof(OptionAttribute)))
-                .Select(x => new { prop = x, desc = GetCustomAttribute<PropertyInfo, OptionAttribute>(x) })
-                .Select(x => (x.prop, x.desc!)))
+            // lookup for unreferenced global/recursive options and trace warning about them
+            if (rootCommandDescriptor?.RecursiveOptionsContainingType != null)
             {
-                if (!prop.CanWrite)
-                    throw new AttributeUsageException($"Property {prop.Name} declared as [Option] must be writable");
-                if (!prop.SetMethod?.IsStatic == null)
-                    throw new AttributeUsageException($"Property {prop.Name} declared as [Option] must be static");
-                var opt = CreateOption(desc, prop.Name, prop.PropertyType, () => prop.GetValue(null));
-                globalOptions.Add(opt);
-                globalOptionsInitializers.Add((ctx) => prop.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
-                _bindings.Add(opt, prop);
-            }
-
-            foreach (var (field, desc) in assembly.GetTypes()
-                .SelectMany(t => t.GetFields(bindingFlags))
-                .Where(x => x.IsDefined(typeof(OptionAttribute)))
-                .Select(x => new { field = x, desc = GetCustomAttribute<FieldInfo, OptionAttribute>(x) })
-                .Select(x => (x.field, x.desc!)))
-            {
-                if (field.IsInitOnly)
-                    throw new AttributeUsageException($"Field {field.Name} declared as [Option] must be writable");
-                if (!field.IsStatic)
-                    throw new AttributeUsageException($"Field {field.Name} declared as [Option] must be static");
-                var opt = CreateOption(desc, field.Name, field.FieldType, () => field.GetValue(null));
-                globalOptions.Add(opt);
-                globalOptionsInitializers.Add((ctx) => field.SetValue(null, ctx.ParseResult.GetValueForOption(opt)));
-                _bindings.Add(opt, field);
+                foreach (var t in recursiveOptions
+                    .Select(o => o.ContainingType)
+                    .Distinct()
+                    .Where(t => t != rootCommandDescriptor.RecursiveOptionsContainingType && !commandDescriptors.Any(d => d.RecursiveOptionsContainingType == t)))
+                {
+                    var message = $"The type '{GetFullTypeName(t)}' contains fields declared as [Option] but is not referenced as GlobalOptionsContainingType or RecursiveOptionsContainingType";
+                    Trace.TraceWarning(message);
+                    //throw new AttributeUsageException(message);
+                }
             }
 
             // create root command
@@ -633,7 +705,7 @@ namespace SnapCLI
 
             if (rootCommandDescriptor?.Method != null)
             {
-                AddCommandHandler(RootCommand, rootCommandDescriptor.Method, rootCommandDescriptor.MutuallyExclusuveOptionsArguments, globalOptionsInitializers);
+                AddCommandHandler(RootCommand, rootCommandDescriptor.Method, rootCommandDescriptor.MutuallyExclusuveOptionsArguments);
                 _bindings.Add(RootCommand, rootCommandDescriptor.Method);
             }
             else
@@ -641,14 +713,18 @@ namespace SnapCLI
                 _bindings.Add(RootCommand, assembly);
             }
 
+            var globalOptions = rootCommandDescriptor?.RecursiveOptionsContainingType != null ?
+                recursiveOptions.Where(x => x.ContainingType == rootCommandDescriptor.RecursiveOptionsContainingType) : // GlobalOptionsContainingType was specified explicitly
+                recursiveOptions.Where(x => !commandDescriptors.Any(d => d.RecursiveOptionsContainingType == x.ContainingType)); // use all options from types not specified as RecursiveOptionsContainingType
+
             foreach (var opt in globalOptions)
-                RootCommand.AddGlobalOption(opt);
+                RootCommand.AddGlobalOption(opt.CliOption);
 
             // add subcommands
 
             var subcommands = commandDescriptors
                 .OrderBy(desc => desc.CommandName.Length) // sort by name length to ensure parent commands created before subcommands
-                .Select(desc => CreateCommand(RootCommand, desc, globalOptionsInitializers))
+                .Select(desc => CreateCommand(RootCommand, desc))
                 .ToArray();
 
             // validate subcommands
@@ -739,7 +815,7 @@ namespace SnapCLI
                 commands.Add(new CommandDescriptor(commandAttributes[0], method));
             }
 
-            // If program has only one method declared with [Command] attrinute and command name is not explicitly specified in attribute Name property,
+            // If program has only one method declared with [Command] attribute and command name is not explicitly specified in attribute Name property,
             // this command is automatically treated as root command.
             if (rootCommand == null && commands.Count == 1 && commands.First().SpecifiedName == null)
             {
@@ -818,7 +894,7 @@ namespace SnapCLI
             }
         }
 
-        private static Command CreateCommand(RootCommand rootCommand, CommandDescriptor desc, IEnumerable<Action<InvocationContext>> globalOptionsInitializers)
+        private static Command CreateCommand(RootCommand rootCommand, CommandDescriptor desc)
         {
             if (!(desc.Attribute is CommandAttribute attr))
                 throw new ArgumentException($"Unexpected descriptor type {desc.Attribute.GetType()} for the command");
@@ -852,7 +928,11 @@ namespace SnapCLI
             command.IsHidden = attr.Hidden;
 
             if (desc.Method != null)
-                AddCommandHandler(command, desc.Method, desc.MutuallyExclusuveOptionsArguments, globalOptionsInitializers);
+                AddCommandHandler(command, desc.Method, desc.MutuallyExclusuveOptionsArguments);
+
+            if (desc.RecursiveOptionsContainingType != null)
+                foreach (var opt in recursiveOptions.Where(x => x.ContainingType == desc.RecursiveOptionsContainingType))
+                    command.AddGlobalOption(opt.CliOption);
 
             return command;
         }
@@ -873,7 +953,7 @@ namespace SnapCLI
 #endif
         };
 
-        private static void AddCommandHandler(Command command, MethodInfo method, string? mutuallyExclusuveOptionsArguments, IEnumerable<Action<InvocationContext>> globalOptionsInitializers)
+        private static void AddCommandHandler(Command command, MethodInfo method, string? mutuallyExclusuveOptionsArguments)
         {
             if (command.Handler != null)
                 throw new AttributeUsageException($"Command '{command.Name}' has multiple handler methods");
@@ -918,8 +998,8 @@ namespace SnapCLI
                 ParseResult = ctx.ParseResult;
                 CancellationToken = ctx.GetCancellationToken();
 
-                foreach (var initializer in globalOptionsInitializers)
-                    initializer.Invoke(ctx);
+                foreach (var opt in recursiveOptions)
+                    opt.SetValueFromCommandLine();
 
                 var methodParams = paramInfo.Select(param =>
                 {

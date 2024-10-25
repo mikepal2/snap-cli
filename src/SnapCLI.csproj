@@ -1,4 +1,4 @@
-﻿<Project Sdk = "Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
@@ -17,15 +17,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include = "System.CommandLine" Version = "2.0.0-beta4.22272.1" />
+		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include = "build/*" PackagePath = "build/$(TargetFramework)" />
+		<Content Include="build/*" PackagePath="build/$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Include = "..\README.md">
+	  <None Include="..\README.md">
 	    <Pack>True</Pack>
 	    <PackagePath>\</PackagePath>
 	  </None>
