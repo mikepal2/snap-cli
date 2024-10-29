@@ -12,14 +12,12 @@ namespace Tests
     public class StaticFieldsCache
     {
         private static bool IsInitialized = false;
-        private static Dictionary<FieldInfo, object?> _fields;
-        private static Dictionary<PropertyInfo, object?> _properties;
+        private static Dictionary<FieldInfo, object?> _fields = [];
+        private static Dictionary<PropertyInfo, object?> _properties = [];
         public StaticFieldsCache()
         {
             if (IsInitialized)
                 return;
-            _fields = [];
-            _properties = [];
             InitCache(GetType());
             foreach (var t in GetType().GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
                 InitCache(t);
