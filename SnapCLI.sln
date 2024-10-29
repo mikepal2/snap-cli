@@ -22,6 +22,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "minimal", "samples\minimal\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "quotes", "samples\quotes\quotes.csproj", "{3B0A6C17-6CF2-4F08-A62B-3C1D907B8FA4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{7ABD6BA0-1A5D-4F22-A5FB-9009E3BB19B6}"
+	ProjectSection(SolutionItems) = preProject
+		docs\Documentation.md = docs\Documentation.md
+		docs\Motivation.md = docs\Motivation.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
