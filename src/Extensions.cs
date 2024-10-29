@@ -7,9 +7,9 @@ using System.Text.RegularExpressions;
 namespace SnapCLI
 {
     /// <summary>
-    /// SnapCLI extentions
+    /// SnapCLI extensions
     /// </summary>
-    public static class Extentions
+    public static class Extensions
     {
         /// <summary>
         /// Validates that only one of specified options appear on command line.
