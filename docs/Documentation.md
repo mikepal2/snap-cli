@@ -4,7 +4,7 @@
 
 ## Overview
 
-This library enables developers to quickly create POSIX-like CLI applications by automatically managing command-line commands and parameters using the provided metadata. This simplifies the development process and allows developers to focus on their application logic.
+This library enables developers to quickly create POSIX-like CLI applications by automatically managing command-line commands and parameters using the provided metadata. This simplifies the development process and allows developers to focus on their application logic. Additionally, it streamlines the creation of the application's help system, ensuring that all necessary information is easily accessible to end users. 
 
 The library employs an API paradigm that utilizes [attributes🗗](https://learn.microsoft.com/en-us/dotnet/csharp/advanced-topics/reflection-and-attributes/) to declare and describe CLI commands, options, and arguments through metadata.
 
@@ -322,10 +322,72 @@ class Program
 }
 ```
 
-### Global options
-Any public static property or field can be declared as global option using the `[Option]` attribute.
+### Recursive options
+A recursive option is available to the command it's assigned to and recursively to all its subcommands. The command may have multiple recursive options along with multiple regular options. 
 
-By default, global options are not required because properties and fields always have default values, either implicitly or explicitly. You can make a global option required by using the `Required` property of the attribute.
+Since recursive options should be available to multiple commands, and to avoid multiple declarations of the same option in multiple places, they are declared with `[Option]` attribute on static properties or fields in separate class, and the class is referenced in `RecursiveOptionsContainingType` property of `[Command]` attribute. 
+
+```csharp
+class FooRecursiveOptions
+{
+    [Option(Descrtiption="Example recursive option")]
+    public static string recursiveOption = "default value #1";
+
+    [Option(Descrtiption="Another recursive option")]
+    public static string recursiveOption2 {get; set;} = "default value #2";
+
+    // this field will NOT be binded as recursive option because it doesn't have [Option] attribute
+    public static string field;
+}
+
+
+[Command(Name="foo", RecursiveOptionsContainingType=typeof(FooRecursiveOptions))]
+public static foo(int opt=0)
+{
+  Console.WriteLine($"foo: opt={opt}, recursiveOption={FooRecursiveOptions.recursiveOption}, recursiveOption2={FooRecursiveOptions.recursiveOption2}");
+}
+
+// the following command can be invoked for example with command line 'app.exe foo --recursiveOption=test subcommand --bar=10'
+// the handler has access to recursive options of foo command through FooRecursiveOptions class
+[Command(Name="foo subcommand")]
+public static foo_subcommand(int bar=1)
+{
+  Console.WriteLine($"foo subcommand: bar={bar}, recursiveOption={FooRecursiveOptions.recursiveOption}, recursiveOption2={FooRecursiveOptions.recursiveOption2}");
+}
+```
+
+By default, recursive options are *not required*, meaning they can be omitted from the command line. This is because properties and fields always have default values, either implicitly or explicitly. It is possible to force a recursive option to be *required* by using the `Required` property of the attribute. This ensures that the option must be provided by the user when invoking the command.
+
+### Global options
+Global options are essentially recursive options declared at the root command level.
+
+Similar to recursive options, the type for global options can be explicitly specified using the `GlobalOptionsContainingType` property in the `[RootCommand]` attribute. 
+
+```csharp
+using SnapCLI;
+[assembly:RootCommand(GlobalOptionsContainingType=typeof(GlobalOptions))]
+
+class GlobalOptions
+{
+    [Option(Descrtiption="Example global option")]
+    public static string globalOption = "default value";
+}
+
+class Program
+{
+    [Command]
+    public static foo(int opt=0)
+    {
+      Console.WriteLine($"foo: opt={opt}, globalOption={GlobalOptions.globalOptions}");
+    }
+}
+```
+
+If the `GlobalOptionsContainingType` is not specified, the default behavior is as follows:
+  - Any public static property or field that has the `[Option]` attribute becomes a global option.
+  - This behavior excludes properties or fields in classes referenced by `RecursiveOptionsContainingType`.
+
+This approach simplifies application development by automatically identifying global options based on the presence of the `[Option]` attribute, while allowing for customization through the use of `GlobalOptionsContainingType`.
 
 ```csharp
 class Program
@@ -338,11 +400,16 @@ class Program
     [Option(Name = "profile", Description = "User profile")]
     public static string Profile;
 
-    // This global option is always required
+    // This global option is always required (must be specified on command line)
     [Option(Name = "user", Description = "User name", Required = true)]
     public static string User { get; set; }
 
-    ...
+    [Command]
+    public static DoWork(int commandSpecificOption = 0)
+    {
+        Console.WriteLine($"config: {ConfigFile}, user: {User}, profile: {Profile}, commandSpecificOption: {commandSpecificOption}");
+        ...
+    }
 }
 ```
 
