@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{53C7A0
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "tests\Tests.csproj", "{4B9EA61D-2298-4A93-AB36-73989C1C6444}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "inventory", "inventory\inventory.csproj", "{08EB9725-D5B9-4DBF-A5A4-DEFF6A67DBA7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "inventory", "samples\inventory\inventory.csproj", "{08EB9725-D5B9-4DBF-A5A4-DEFF6A67DBA7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "minimal", "samples\minimal\minimal.csproj", "{7BFE6305-E7EA-4503-9893-3412471DC404}"
 EndProject
