@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include = "..\src\SnapCLI.csproj" />
+    <ProjectReference Include = "..\src\SnapCLI\SnapCLI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

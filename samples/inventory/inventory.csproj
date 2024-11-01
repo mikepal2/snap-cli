@@ -16,9 +16,9 @@
 	as class library and therefore have to include these references manually.
 	-->
 	<ItemGroup>
-		<ProjectReference Include = "..\..\src\SnapCLI.csproj" />
+		<ProjectReference Include = "..\..\src\SnapCLI\SnapCLI.csproj" />
 	</ItemGroup>
-	<Import Project = "..\..\src\build\SnapCLI.props" />
-	<Import Project = "..\..\src\build\SnapCLI.targets" />
+	<Import Project = "..\..\src\SnapCLI\build\SnapCLI.props" />
+	<Import Project = "..\..\src\SnapCLI\build\SnapCLI.targets" />
 
 </Project>
