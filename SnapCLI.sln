@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35219.272
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnapCLI", "src\SnapCLI.csproj", "{09CFDA7C-0FDF-4459-A830-0BD5867FF82E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnapCLI", "src\SnapCLI\SnapCLI.csproj", "{09CFDA7C-0FDF-4459-A830-0BD5867FF82E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnapCLI.DataAnnotations", "DataAnnotations\SnapCLI.DataAnnotations.csproj", "{75238CCC-E107-4527-BE1C-DD4EA023D1E7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnapCLI.DataAnnotations", "src\SnapCLI.DataAnnotations\SnapCLI.DataAnnotations.csproj", "{75238CCC-E107-4527-BE1C-DD4EA023D1E7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{C719450D-1E92-4D19-947C-AE2FD15876B1}"
 EndProject
