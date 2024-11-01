@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+		<AutoGenerateEntryPoint>false</AutoGenerateEntryPoint>
+		<Nullable>enable</Nullable>
+		<LangVersion>8.0</LangVersion>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Authors>Michael Pavlushik</Authors>
+		<Description>This extension for SnapCLI library enables validation of command-line arguments based on data annotation attributes, ensuring that input meets specified criteria before executing the command.</Description>
+		<RepositoryUrl>https://github.com/mikepal2/snap-cli</RepositoryUrl>
+		<Version>1.0.0-pre</Version>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
+		<PackageTags>SnapCLI DataAnnotations Validation</PackageTags>
+		<PackageReleaseNotes></PackageReleaseNotes>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="SnapCLI" Version="2.0.0-pre" />
+		<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+</Project>
