@@ -29,4 +29,9 @@
 		</None>
 	</ItemGroup>
 
+
+	<ItemGroup>
+	  <ProjectReference Include="..\SnapCLI\SnapCLI.csproj" />
+	</ItemGroup>
+
 </Project>
