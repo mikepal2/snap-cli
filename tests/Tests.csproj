@@ -1,4 +1,4 @@
-<Project Sdk = "Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -10,18 +10,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include = "coverlet.collector" Version = "6.0.0" />
-    <PackageReference Include = "Microsoft.NET.Test.Sdk" Version = "17.8.0" />
-    <PackageReference Include = "MSTest.TestAdapter" Version = "3.1.1" />
-    <PackageReference Include = "MSTest.TestFramework" Version = "3.1.1" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include = "..\src\SnapCLI\SnapCLI.csproj" />
+	  <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+	  <ProjectReference Include="..\src\SnapCLI\SnapCLI.csproj" />
+	  <ProjectReference Include="..\src\SnapCLI.DataAnnotations\SnapCLI.DataAnnotations.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include = "Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 
 </Project>

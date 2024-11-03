@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnapCLI", "src\SnapCLI\SnapCLI.csproj", "{09CFDA7C-0FDF-4459-A830-0BD5867FF82E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnapCLI.DataAnnotations", "src\SnapCLI.DataAnnotations\SnapCLI.DataAnnotations.csproj", "{75238CCC-E107-4527-BE1C-DD4EA023D1E7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{09CFDA7C-0FDF-4459-A830-0BD5867FF82E} = {09CFDA7C-0FDF-4459-A830-0BD5867FF82E}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{C719450D-1E92-4D19-947C-AE2FD15876B1}"
 EndProject
@@ -40,6 +43,10 @@ Global
 		{09CFDA7C-0FDF-4459-A830-0BD5867FF82E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{09CFDA7C-0FDF-4459-A830-0BD5867FF82E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{09CFDA7C-0FDF-4459-A830-0BD5867FF82E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4B9EA61D-2298-4A93-AB36-73989C1C6444}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4B9EA61D-2298-4A93-AB36-73989C1C6444}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B9EA61D-2298-4A93-AB36-73989C1C6444}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -56,10 +63,6 @@ Global
 		{3B0A6C17-6CF2-4F08-A62B-3C1D907B8FA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B0A6C17-6CF2-4F08-A62B-3C1D907B8FA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B0A6C17-6CF2-4F08-A62B-3C1D907B8FA4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{75238CCC-E107-4527-BE1C-DD4EA023D1E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

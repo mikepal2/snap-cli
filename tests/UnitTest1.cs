@@ -1,51 +1,15 @@
 using SnapCLI;
 using System.CommandLine;
 using System.CommandLine.Builder;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using SnapCLI.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 [assembly: Command(Name = "level1cmd")]
 
 namespace Tests
 {
-    public class StaticFieldsCache
-    {
-        private static bool IsInitialized = false;
-        private static Dictionary<FieldInfo, object?> _fields = [];
-        private static Dictionary<PropertyInfo, object?> _properties = [];
-        public StaticFieldsCache()
-        {
-            if (IsInitialized)
-                return;
-            InitCache(GetType());
-            foreach (var t in GetType().GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
-                InitCache(t);
-            IsInitialized = true;
-        }
-
-        private void InitCache(Type type)
-        {
-            if (!type.IsClass)
-                return;
-            foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
-                .Where(f => f.IsStatic && !f.IsLiteral && !f.IsInitOnly))
-                _fields.Add(field, field.GetValue(null));
-            foreach (PropertyInfo prop in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
-                .Where(f => f.SetMethod?.IsStatic == true))
-                _properties.Add(prop, prop.GetValue(null));
-        }
-
-        public void ResetValuesFromCache()
-        {
-            foreach (var field in _fields)
-                field.Key.SetValue(null, field.Value);
-            foreach (var prop in _properties)
-                prop.Key.SetValue(null, prop.Value);
-        }
-    }
-
-
     [TestClass]
     public class UnitTest1 : StaticFieldsCache
     {
@@ -124,7 +88,12 @@ namespace Tests
         [DataRow("cmd-r1 --r-opt1 111 --r-opt2 opt222 --r-opt3 opt333", "[cmd-r1(11,111,opt222,opt333)]")]
         [DataRow("cmd-r1 --r-opt1 1111 --r-opt2 opt222s --r-opt3 opt333s sub-cmd-r1 --opt1 101", "[cmd-r1_sub-cmd-r1(101,1111,opt222s,opt333s)]")]
         [DataRow("cmd-r2 --opt1 11 --r-opt1 111 --r-opt2 opt222 --r-opt3 opt333", "[cmd-r2(11,1,opt2,opt3,111,opt222,opt333)]")]
-
+        [DataRow("ann1", "The option 'opt1' must be between 1 and 10")]
+        [DataRow("ann1 --opt1 1", "[ann1(1,test)]")]
+        [DataRow("ann1 --opt1 10", "[ann1(10,test)]")]
+        [DataRow("ann1 --opt1 11", "The option 'opt1' must be between 1 and 10")]
+        [DataRow("ann1 --opt1 5 --opt2 aa", "minimum length of '3' and maximum length of '10'")]
+        [DataRow("ann1 --opt1 5 --opt2 test!", "[ann1(5,test!)]")]
         public void TestCLI(string commandLine, string pattern, UseExceptionHandler useExceptionHandler = UseExceptionHandler.Default)
         {
             // synchronize tests
@@ -481,6 +450,25 @@ namespace Tests
         }
 
 
+        [Startup]
+        public static void Startup()
+        {
+            CLI.BeforeCommand += (args) => args.ParseResult.ValidateDataAnnotations();
+        }
+
+
+        [Command(Name = "ann1")]
+        public static void TestAnnotations1(
+            [Range(1, 10)]
+            int opt1 = 0,
+
+            [Length(3, 10)]
+            string opt2 = "test"
+            )
+        {
+            TraceCommand(opt1, opt2);
+        }
     }
+
 
 }
