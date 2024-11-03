@@ -68,6 +68,7 @@ namespace SnapCLI.DataAnnotations
                         {
                             result.ErrorMessage = result.ErrorMessage
                                 .Replace("{displayName} field", "{displayName}")
+                                .Replace("field {displayName}", "{displayName}")
                                 .Replace("{displayName}", displayName);
                         }
 
