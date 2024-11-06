@@ -1,5 +1,13 @@
 # SnapCLI Library
 
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Advanced Usage](#advanced-usage)
+- [Application Lifecycle](#application-lifecycle)
+- [Validation](#validation)
+- [Exception Handling](#exception-handling)
+
 > **Note**: Links to external sources and Microsoft documentation will be included throughout the text below, marked with the 🗗 symbol.
 
 ## Overview
@@ -22,7 +30,7 @@ Since this project is based on the [System.CommandLine🗗](https://learn.micros
 
 It is recommended to follow the [System.CommandLine design guidance🗗](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#design-guidance) when designing your CLI.
 
-## Quick start
+## Quick Start
 
 Here, we will explore basic constructs to define [commands](#commands), [options](#options) and [arguments](#arguments). For many CLI application that is all they need to get and process command line input.
 
@@ -210,12 +218,12 @@ Options:
 
 You can provide options before arguments or arguments before options on the command line. See [System.CommandLine documentation🗗](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#order-of-options-and-arguments) for details.
 
-## Advanced usage
+## Advanced Usage
 
 In addition to basic constructs for [commands](#commands), [options](#options), and [arguments](#arguments), the library offers fine control over command-line commands and options hierarchy. It also facilitates application [initialization and execution](#application-lifecycle), input [validation](#validation), and [exception handling](#exception-handling).
 
 
-### Root command
+### Root Command
 The [root command🗗](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax#root-commands) is executed if program invoked without any known commands on the command line. If no handler is assigned for the root command, the CLI will indicate that the required command is not provided and display the help message. To assign a handler method for the root command, use the `[RootCommand]` attribute. Its usage is similar to the `[Command]` attribute, except that you cannot specify a command name. There can be only one method declared with `[RootCommand]` attribute.
 
 The description for the root command essentially serves as the program description in the help output, as shown when program is invoked with the `--help` parameter. If the root command is not declared, `SnapCLI` library will use the assembly description as the root command description.
@@ -299,7 +307,7 @@ Options:
 Hello World!
 ```
 
-### Commands without handlers
+### Commands without Handlers
 In the output above we have description for the `hello world` command, but not for the `hello`. To describe the `hello` command without assigning a handler method you may use `[assembly: Command()]` attribute at the top of the program source.
 
 Similarly, you can provide description for the root command (the first description in the output above) using `[assembly: RootCommand()]` attribute.
@@ -322,7 +330,7 @@ class Program
 }
 ```
 
-### Recursive options
+### Recursive Options
 A recursive option is available to the command it's assigned to and recursively to all its subcommands. The command may have multiple recursive options along with multiple regular options. 
 
 Since recursive options should be available to multiple commands, and to avoid multiple declarations of the same option in multiple places, they are declared with `[Option]` attribute on static properties or fields in separate class, and the class is referenced in `RecursiveOptionsContainingType` property of `[Command]` attribute. 
@@ -356,9 +364,9 @@ public static foo_subcommand(int bar=1)
 }
 ```
 
-By default, recursive options are *not required*, meaning they can be omitted from the command line. This is because properties and fields always have default values, either implicitly or explicitly. It is possible to force a recursive option to be *required* by using the `Required` property of the attribute. This ensures that the option must be provided by the user when invoking the command.
+By default, recursive options are *not required*, meaning they can be omitted from the command line. This is because properties and fields always have default values, either implicitly or explicitly. It is possible to force a recursive option to be *required* by using the `Required` property of the attribute. The *required* option must be provided by the user when invoking the command.
 
-### Global options
+### Global Options
 Global options are essentially recursive options declared at the root command level.
 
 Similar to recursive options, the type for global options can be explicitly specified using the `GlobalOptionsContainingType` property in the `[RootCommand]` attribute. 
@@ -453,7 +461,7 @@ Numbers are: 12,76!
 ```
 </details>
 
-### Kebab case
+### Kebab Case
 When the command, option, or argument name is not specified in the attribute, an implicit name is generated based on the method name for commands or the parameter name for options and arguments. If the name is in [Camel case🗗](https://en.wikipedia.org/wiki/Letter_case#Camel_case), a hyphen is inserted between words. Finally, the name is converted to lowercase. 
 
 Below are examples of method/parameter names and their resulting kebab-case names.
@@ -483,7 +491,7 @@ Here are the steps of the CLI application initialization and execution lifecycle
 
 The command handler is the only *required* component that must be provided by the application developer, all other steps are automatic or optional.
 
-### Main method  
+### Main Method  
 Typically, the `Main` method serves as the entry point of a C# application. However, to simplify startup code and usage, this library overrides the program's entry point and uses command handler methods as the entry points instead. 
 
 It’s important to note that since the library overrides the application entry point, if you include your own `Main` function in the program, it will **not** be invoked.
@@ -579,43 +587,81 @@ public static void Startup()
 
 ## Validation
 
-### Input validation
+### Input Validation
 There are multiple strategies to validate command line input. 
 
-Input values can be validated at the beginning of the command handler method in any manner required by the command syntax.
+* Input values can be validated at the beginning of the command handler method in any     manner required by the command syntax.
 
-```csharp
-[Command]
-public static void command([Argument] int arg1 = 1, int opt1 = 1, int opt2 = 2) 
-{
-    if (arg1 < 0 || arg1 > 100)
-        throw new ArgumentException($"The valid range for the <arg1> value is 0-100");
-    ...
-}
-```
+  ```csharp
+  [Command]
+  public static void command([Argument] int arg1 = 1, int opt1 = 1, int opt2 = 2) 
+  {
+      if (arg1 < 0 || arg1 > 100)
+          throw new ArgumentException($"The valid range for the <arg1> value is 0-100");
+      ...
+  }
+  ```
 
-For global options validation may be implemented in property setter.
+* For global and recursive options validation may be implemented in property setter.
 
-```csharp
-class Program
-{
-    // global option with validation
-    [Option(Name = "file", Description = "An option whose argument is parsed as a FileInfo")]
-    public static FileInfo file  {
-        get { return _file; }
-        set {
-            if (!value.Exists)
-                throw new FileNotFoundException($"Specified file not found", value.FullName);
-            _file = value; 
-        }
-    }
-    private static FileInfo _file = new FileInfo("sampleQuotes.txt");
+  ```csharp
+  class Program
+  {
+      // global option with validation
+      [Option(Name = "file", Description = "An option whose argument is parsed as a FileInfo")]
+      public static FileInfo file  {
+          get { return _file; }
+          set {
+              if (!value.Exists)
+                  throw new FileNotFoundException($"Specified file not found", value.FullName);
+              _file = value; 
+          }
+      }
+      private static FileInfo _file = new FileInfo("sampleQuotes.txt");
 
-    ...
-}
-```
+      ...
+  }
+  ```
 
-### Checking for Mutually Exclusive Options and Arguments
+* The SnapCLI.DataAnnotations library enables validation of command-line arguments using [DataAnnotations🗗](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel/dataannotations) validation attributes. See library [documentation](/src/SnapCLI.DataAnnotations/README.md) for details.
+
+  ```csharp
+  using SnapCLI;
+  using SnapCLI.DataAnnotations;
+  using System.ComponentModel.DataAnnotations;
+
+  [Startup]
+  public static void Startup()
+  {
+      // enable validation
+      CLI.BeforeCommand += (args) => args.ParseResult.ValidateDataAnnotations();
+  }
+
+  [Command(name: "quotes read", description: "Read and display the file.")]
+  public static async Task ReadQuotesFile(
+      [Argument(name: "file", description: "File containing quotes")]
+      [FileExtensions(Extensions = "txt,quotes")]
+      [FileExists]
+      FileInfo file,
+
+      [Option(description: "Delay between lines, specified as milliseconds per character in a line.")]
+      [Range(0, 1000)]
+      int delay = 42,
+
+      [Option(name: "fgcolor", description: "Foreground color of text displayed on the console.")]
+      [AllowedValues(ConsoleColor.White, ConsoleColor.Red, ConsoleColor.Blue, ConsoleColor.Green)]
+      ConsoleColor fgColor = ConsoleColor.White)
+  {
+      Console.ForegroundColor = fgColor;
+      foreach (string line in File.ReadLines(file.FullName))
+      {
+          Console.WriteLine(line);
+          await Task.Delay(delay * line.Length);
+      };
+  }
+
+  ```
+### Mutually Exclusive Options and Arguments
 
 In CLI applications, checking for mutually exclusive options and arguments is a common scenario. This library provides effective mechanisms to perform these checks.
 
@@ -650,7 +696,7 @@ In CLI applications, checking for mutually exclusive options and arguments is a 
   }
   ``` 
 
-## Exception handling
+## Exception Handling
 To catch unhandled exceptions during command execution you may set exception handler in [Startup](#startup) method. The handler is intended to provide exception diagnostics according to the need of your application before exiting. The return value from handler will be used as program's exit code. For example:
 
 ```csharp
