@@ -147,25 +147,32 @@ class Program
 ```
 </details>&nbsp;
 
-There are several problems with `System.CommandLine` API related to creating and maintaining the code:
-1. The largest portion of the code in this sample is dedicated to setting up the command-line parsing rules. This must be written manually, with careful attention to the relationships between different objects, names, and the order of the parameters, ensuring that no bindings are missed. Only the final part of the code is dedicated to the actual application logic.
-2. The command line entities' definition, their binding, and their use are often located in completely different parts of the code, making the code difficult to understand and maintain. For example, the method `ReadFile()` has a `file` parameter. While `ReadFile()` is associated with the `read` command, which in turn is subcommand of `quotes` command, these commands don't have a file option. The `file` parameter is actually linked to the global (recursive) parameter `--file` of the RootCommand. However, you must read through all the code to identify these relationships.
-3. Options, arguments, and commands are created and initialized in multiple stages. First, multiple options are created; then, multiple commands are defined. After that, commands are configured with options and arranged into hierarchy, followed by configuring command handlers where bindings to particular options and arguments are added. To fully understand the configuration of a single command, you often need to read through all the code and isolate the sections related to that command, skipping over everything else.
-4. It is not practical to mix configuration code with implementation handler methods. As a result, the `SetHandler` method have to use lambda solely to call the corresponding handler method. 
-   >  ```csharp
-   > addCommand.SetHandler((file, quote, byline) => { AddToFile(file!, quote, byline); },
-   >     fileOption, quoteArgument, bylineArgument);
-   > 
-   > internal static void AddToFile(FileInfo file, string quote, string byline)
-   > { 
-   >    ...
-   > }  
-   > ```
-   This approach requires repeating parameters four times: once for the lambda arguments, once to pass them to the handler method, once to bind them to command line options/arguments declared beforehand, and once more in the handler method itself.
-   
-5. Another problem here is that the `SetHandler` method supports binding of up to 8 parameters. If you add one more, you will need to completely rewrite the handler method code, as automatic binding will no longer be available, and you will have to access options and arguments manually from the handler method.
+There are several problems with the `System.CommandLine` API related to creating and maintaining the code:
 
-For large CLI application (think of `dotnet` CLI) the amount and complexity of above code may grow enormously.
+- **Complexity of command-line handling code**: The largest portion of the code in this sample is dedicated to command-line handling. This must be written manually, with careful attention to the relationships between different objects, names, and the order of parameters, ensuring that no bindings are missed. Only the final portion of the code is dedicated to the actual application logic.
+
+- **Separation of entity definitions, bindings, and usage**: The definitions, bindings, and usage of command-line entities are often spread across different parts of the code, making it difficult to understand and maintain. For example, the method `ReadFile()` has a `file` parameter. While `ReadFile()` is associated with the `read` command (which is a subcommand of the `quotes` command), neither of these commands has a `file` option. Instead, the `file` parameter is linked to the global (recursive) `--file` option of the `RootCommand`. These relationships are not immediately obvious and require reading through the entire code.
+
+- **Multi-stage initialization**: Options, arguments, and commands are created and initialized in multiple stages. First, options are defined; then, commands are created. After that, commands are configured with options and arranged into a hierarchy. Finally, handlers are set up, binding the options and arguments. To fully understand the configuration of a single command, you often have to read through the entire code and isolate the sections relevant to that command, skipping over other parts.
+
+- **Repetition**: It is not practical to mix configuration code with implementation handler methods. As a result, the `SetHandler` method uses a lambda to call the corresponding handler method.
+  ```csharp
+  addCommand.SetHandler((file, quote, byline) => { AddToFile(file!, quote, byline); },
+    fileOption, quoteArgument, bylineArgument);
+
+  internal static void AddToFile(FileInfo file, string quote, string byline)
+  { 
+      ...
+  }  
+  ```
+  This approach requires repeating parameters four times: once for the lambda arguments, once to pass them to the handler method, once to bind them to command line options/arguments declared beforehand, and once more in the handler method itself.
+
+- **Adding an option to a command**: If you need to add another option to a command, you'll have to modify code in at least four different places: create the option, add it to the command, bind it to the handler method in the `SetHandler` call, and add the parameter to the handler method.
+
+- **Limitation of SetHandler method**: The `SetHandler` method only supports binding up to eight parameters. If you need to add more, you'll have to completely rewrite the handler method, as automatic binding will no longer be available. You'll need to manually access options and arguments from the handler method.
+
+- **Growing complexity**: For large CLI applications (e.g., the `dotnet` CLI), the amount and complexity of command-line handling code can grow significantly.
+
 
 ## SnapCLI Example
 For comparison, [here](../samples/quotes/Program.cs) you can see the same code adapted to use the SnapCLI library. It is functionally equivalent, providing the same command line interface and producing the same output. Note how in this example:
@@ -174,6 +181,7 @@ For comparison, [here](../samples/quotes/Program.cs) you can see the same code a
 - Binding errors are not possible since binding is automatic through metadata. Any changes to the handler method parameters will be automatically reflected in the command-line configuration.
 - In most cases, option names are inferred automatically from parameter names.
 - Default values for options are specified as parameter default values, where they are logically expected.
+
 
 
 

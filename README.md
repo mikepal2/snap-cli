@@ -10,9 +10,9 @@ The library is available as a NuGet package:
 
 ## Project Goal
 
-While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code before the program is ready to run and can be difficult to maintain. See additional context on the [Motivation](./docs/Motivation.md) page.
+While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code responsible for command-line handling before the program is ready to run. Additionally, this code can be difficult to maintain. For more context, see the [Motivation](./docs/Motivation.md) page.
 
-The goal of this project is to solve these problems by providing developers with easy-to-use mechanisms while retaining the core functionality and features of `System.CommandLine`.
+The goal of this project is to address these issues by providing developers with easy-to-use mechanisms, while retaining the core functionality and features of `System.CommandLine`.
 
 This library enables developers to quickly create POSIX-like CLI applications by automatically managing command-line commands and parameters using the provided metadata. This simplifies the development process and allows developers to focus on their application logic.
 
