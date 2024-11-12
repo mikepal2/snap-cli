@@ -75,13 +75,10 @@ namespace Tests
         [DataRow("cmd-r1 --r-opt1 111 --r-opt2 opt222 --r-opt3 opt333", "[cmd-r1(11,111,opt222,opt333)]")]
         [DataRow("cmd-r1 --r-opt1 1111 --r-opt2 opt222s --r-opt3 opt333s sub-cmd-r1 --opt1 101", "[cmd-r1_sub-cmd-r1(101,1111,opt222s,opt333s)]")]
         [DataRow("cmd-r2 --opt1 11 --r-opt1 111 --r-opt2 opt222 --r-opt3 opt333", "[cmd-r2(11,1,opt2,opt3,111,opt222,opt333)]")]
-        [DataRow("ann1", "The option 'opt1' must be between 1 and 10")]
-        [DataRow("ann1 --opt1 1", "[ann1(1,test)]")]
-        [DataRow("ann1 --opt1 10", "[ann1(10,test)]")]
-        [DataRow("ann1 --opt1 11", "The option 'opt1' must be between 1 and 10")]
-        [DataRow("ann1 --opt1 5 --opt2 aa", "minimum length of '3' and maximum length of '10'")]
-        [DataRow("ann1 --opt1 5 --opt2 test!", "[ann1(5,test!)]")]
-
+        public void Test(string commandLine, string pattern, UseExceptionHandler useExceptionHandler = UseExceptionHandler.Default)
+        {
+            TestCLI(commandLine, pattern, useExceptionHandler);
+        }
 
         [Startup]
         public static void Startup(CommandLineBuilder commandLineBuilder)
