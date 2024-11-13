@@ -10,7 +10,7 @@ The library is available as a NuGet package:
 
 ## Project Goal
 
-While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code responsible for command-line handling before the program is ready to run. Additionally, this code can be difficult to maintain. For more context, see the [Motivation](./docs/Motivation.md) page.
+While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code responsible for command-line handling before the program is ready to run. Additionally, this code can be difficult to maintain. For more context, see the [Motivation](https://github.com/mikepal2/snap-cli/blob/main/docs/Documentation.md) page.
 
 The goal of this project is to address these issues by providing developers with easy-to-use mechanisms, while retaining the core functionality and features of `System.CommandLine`.
 
@@ -22,11 +22,11 @@ The inspiration for this project came from the [DragonFruit](https://github.com/
 
 ## Documentation
 
-Visit the [Documentation](./docs/Documentation.md) page to get started with SnapCLI’s APIs.
+Visit the [Documentation](https://github.com/mikepal2/snap-cli/blob/main/docs/Documentation.md) page to get started with SnapCLI’s APIs.
 
 ## Examples
 
-There are several [samples](./samples/readme.md) provided to demonstrate various ways to use the library.
+There are several [samples](https://github.com/mikepal2/snap-cli/blob/main/samples/readme.md) provided to demonstrate various ways to use the library.
 
 ## .NET Framework Support
 
@@ -34,4 +34,4 @@ Supported frameworks can be found on the [SnapCLI NuGet page](https://www.nuget.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.md). Some parts of this project are borrowed with modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT License](LICENSE-command-line-api.md).
+This project is licensed under the [MIT License](https://github.com/mikepal2/snap-cli/blob/main/LICENSE.md). Some parts of this project are borrowed with modifications from [DragonFruit](https://github.com/dotnet/command-line-api/tree/main/src/System.CommandLine.DragonFruit/targets) under the [MIT License](https://github.com/mikepal2/snap-cli/blob/main/LICENSE-command-line-api.md).
