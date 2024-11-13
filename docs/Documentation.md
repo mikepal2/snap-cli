@@ -623,7 +623,7 @@ There are multiple strategies to validate command line input.
   }
   ```
 
-* The `SnapCLI.DataAnnotations` library enables validation of command-line arguments using [DataAnnotations🗗](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel/dataannotations) validation attributes. See library [documentation](/src/SnapCLI.DataAnnotations/README.md) for details.
+* The `SnapCLI.DataAnnotations` library enables validation of command-line arguments using [DataAnnotations🗗](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel/dataannotations) validation attributes. See library [documentation](https://github.com/mikepal2/snap-cli-data-annotations/blob/main/README.md) for details.
 
   ```csharp
   using SnapCLI;
