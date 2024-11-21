@@ -10,7 +10,7 @@ The library is available as a NuGet package:
 
 ## Project Goal
 
-While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code responsible for command-line handling before the program is ready to run. Additionally, this code can be difficult to maintain. For more context, see the [Motivation](https://github.com/mikepal2/snap-cli/blob/main/docs/Documentation.md) page.
+While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code responsible for command-line handling before the program is ready to run. Additionally, this code can be difficult to maintain. For more context, see the [Motivation](https://github.com/mikepal2/snap-cli/blob/main/docs/Motivation.md) page.
 
 The goal of this project is to address these issues by providing developers with easy-to-use mechanisms, while retaining the core functionality and features of `System.CommandLine`.
 
