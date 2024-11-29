@@ -1,4 +1,12 @@
 # SnapCLI
+[![Build Status][ci-badge]][ci] [![NuGet][nuget-badge]![NuGet Downloads][nuget-download-badge]][nuget]
+
+[ci]: https://github.com/mikepal2/snap-cli/actions?query=workflow%3ACI+branch%3Amain
+[ci-badge]: https://github.com/mikepal2/snap-cli/workflows/CI/badge.svg
+[nuget]: https://www.nuget.org/packages/SnapCLI/
+[nuget-badge]: https://img.shields.io/nuget/v/SnapCLI.svg?style=flat-square
+[nuget-download-badge]: https://img.shields.io/nuget/dt/SnapCLI?style=flat-square
+
 
 Quickly create POSIX-like Command Line Interface (CLI) applications with a simple metadata API, built on top of the [System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/) library.
 
@@ -10,7 +18,7 @@ The library is available as a NuGet package:
 
 ## Project Goal
 
-While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code responsible for command-line handling before the program is ready to run. Additionally, this code can be difficult to maintain. For more context, see the [Motivation](https://github.com/mikepal2/snap-cli/blob/main/docs/Documentation.md) page.
+While Microsoft's `System.CommandLine` library provides all the necessary APIs to parse command-line arguments, it requires significant effort to set up the code responsible for command-line handling before the program is ready to run. Additionally, this code can be difficult to maintain. For more context, see the [Motivation](https://github.com/mikepal2/snap-cli/blob/main/docs/Motivation.md) page.
 
 The goal of this project is to address these issues by providing developers with easy-to-use mechanisms, while retaining the core functionality and features of `System.CommandLine`.
 
