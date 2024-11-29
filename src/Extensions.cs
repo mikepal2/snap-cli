@@ -37,6 +37,7 @@ namespace SnapCLI
                     if (!group.EndsWith(")"))
                     throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses): " + mutuallyExclusiveOptionsArguments);
                 group = group.Substring(1, group.Length - 2);
+                }
                 if (group.Contains('(') || group.Contains(')'))
                     throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses) " + mutuallyExclusiveOptionsArguments);
 
