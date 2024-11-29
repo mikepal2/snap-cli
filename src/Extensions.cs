@@ -35,8 +35,8 @@ namespace SnapCLI
                 if (group.StartsWith("("))
                 {
                     if (!group.EndsWith(")"))
-                    throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses): " + mutuallyExclusiveOptionsArguments);
-                group = group.Substring(1, group.Length - 2);
+                        throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses): " + mutuallyExclusiveOptionsArguments);
+                    group = group.Substring(1, group.Length - 2);
                 }
                 if (group.Contains('(') || group.Contains(')'))
                     throw new AttributeUsageException("Invalid mutually exclusive options/arguments syntax (unmatched parentheses) " + mutuallyExclusiveOptionsArguments);
@@ -80,11 +80,11 @@ namespace SnapCLI
                         if (r is ArgumentResult argResult
                             && argResult.Tokens.Count > 0
                             && mutuallyExclusiveOptionsArguments.Any(name => argResult.Argument.NameEquals(name ?? throw new ArgumentNullException(nameof(name)))))
-                            return argResult.Argument.ToString();
+                            return $"argument '{argResult.Argument.Name}'";
                         if (r is OptionResult optResult
                             && !optResult.IsImplicit
                             && mutuallyExclusiveOptionsArguments.Any(name => optResult.Option.NameEquals(name ?? throw new ArgumentNullException(nameof(name)))))
-                            return optResult.Option.ToString();
+                            return $"option '{optResult.Option.Name}'";
                         return null;
                     })
                     .Where(x => x != null)
