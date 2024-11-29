@@ -70,6 +70,8 @@ namespace Tests
         [DataRow("validate-mutually-exclusive-options2 --opt2 1 --global-option-field 2", "mutually exclusive")]
         [DataRow("validate-mutually-exclusive-options2 3 --opt2 1", "mutually exclusive")]
         [DataRow("validate-mutually-exclusive-options2 3 --opt1 1", "!mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options3 --opt1 1 --opt2 2", "mutually exclusive")]
+        [DataRow("validate-mutually-exclusive-options3 --opt2 1 3", "mutually exclusive")]
         [DataRow("cmd-r1", "[cmd-r1(11,1,opt2,opt3)]")]
         [DataRow("cmd-r1 --r-opt1 111", "[cmd-r1(11,111,opt2,opt3)]")]
         [DataRow("cmd-r1 --r-opt1 111 --r-opt2 opt222 --r-opt3 opt333", "[cmd-r1(11,111,opt222,opt333)]")]
@@ -224,6 +226,12 @@ namespace Tests
         [Command(MutuallyExclusuveOptionsArguments = "(opt1,opt2)(opt1,prop)(opt2,global-option-field)(opt2,arg1)")]
         public static void ValidateMutuallyExclusiveOptions2(
             int opt1 = 1, int opt2 = 2, [Argument] int arg1 = 3)
+        {
+            TraceCommand();
+        }
+
+        [Command(MutuallyExclusuveOptionsArguments = "opt1,opt2,arg1")]
+        public static void ValidateMutuallyExclusiveOptions3(int opt1 = 1, int opt2 = 2, [Argument] int arg1 = 3)
         {
             TraceCommand();
         }
