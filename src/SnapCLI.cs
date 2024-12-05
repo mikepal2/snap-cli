@@ -786,6 +786,7 @@ namespace SnapCLI
         {
             commands = new List<CommandDescriptor>();
             rootCommand = null;
+            var mainMethods = new List<MethodInfo>();
 
             var rootCommandAttribute = GetCustomAttribute<Assembly, RootCommandAttribute>(assembly);
             if (rootCommandAttribute != null)
@@ -806,7 +807,11 @@ namespace SnapCLI
 
                 var commandAttributes = GetCustomAttributes<MethodInfo, CommandAttribute>(method).ToArray();
                 if (commandAttributes.Length == 0)
+                {
+                    if (method.IsPublic && method.IsStatic && method.Name == "Main")
+                        mainMethods.Add(method);
                     continue;
+                }
                 if (commandAttributes.Length > 1)
                     throw new AttributeUsageException($"Method {method.Name} has multiple [Command] attributes declared");
                 if (rootCommandAttribute != null)
@@ -821,6 +826,18 @@ namespace SnapCLI
             {
                 rootCommand = commands.First();
                 commands.Clear();
+            }
+            
+            // If program has no methods declared with [Command] or [RootCommand] attributes,
+            // then the Main() method is automatically treated as root command.
+            if (mainMethods.Count > 0)
+            {
+                if (mainMethods.Count > 1)
+                    throw new Exception($"Assembly contains multiple Main() methods");
+                if (rootCommand == null && commands.Count == 0)
+                    rootCommand = new CommandDescriptor(new RootCommandAttribute(), mainMethods.First());
+                else
+                    throw new Exception("The program has both [Command]/[RootCommand] handlers and Main() method, the Main() method will not be executed");
             }
         }
 
