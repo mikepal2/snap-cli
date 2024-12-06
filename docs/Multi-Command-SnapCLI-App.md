@@ -76,6 +76,6 @@ Now, let's add descriptions to make the help more user-friendly.
 ```csharp
 ```
 
-Now, let's make it a bit more complex by adding the ability to read input from a file and write output to a file. For this, we will add `--input` and `--output` options for each command. We will also declare that the string argument and the `--input` option are mutually exclusive, i.e., only one of them can be specified on the command line.
+Now, let's make it a bit more complex by adding the ability to read input from a file and write output to a file. For this, we will add `--input` and `--output` options for each command. We will also declare that the string argument and the `--input` option are mutually exclusive, i.e., only one of them can be specified on the command line at a time.
 
 

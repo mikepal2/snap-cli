@@ -75,7 +75,7 @@ class Program
 }
 ```
 
-> **Technical note:** In this example, the SnapCLI library automatically recognizes the `Main` method as the [root command](Documentation#root-command) handler because the program has no methods declared with `[RootCommand]` or `[Command]` attributes. All the parameters of the `Main` method are bound to options with the same names. This default behavior allows you to write CLI applications with minimal effort.
+> **Technical note:** In this example, the SnapCLI library automatically recognizes the `Main` method as the [root command](./Documentation.md#root-command) handler because the program has no methods declared with `[RootCommand]` or `[Command]` attributes. All the parameters of the `Main` method are bound to options with the same names. This default behavior allows you to write simple CLI applications with minimal effort.
 
 You're ready to run your program.
 
@@ -102,7 +102,7 @@ class Program
         ConsoleColor fgColor = ConsoleColor.White, 
         int repeat = 1)
     {
-        Concole.ForegroundColor = fgColor;
+        Console.ForegroundColor = fgColor;
         for (int i=0; i<repeat; i++)
             Console.WriteLine($"Hello {name}!");
     }    
@@ -126,10 +126,23 @@ Now you don't need to specify `--name` when providing name argument on the comma
 
 Your program already has basic help listing all arguments and options!
 
-> <p style="font-family:SFMono-Regular, Menlo, Monaco, Consolas, liberation mono, courier new, monospace;">
->   <span style="color:lightgray">> myApp -?</span><br>
->   <span style="color:white">...</span><br>
-> </p>
+```text
+> myApp -?
+Description:
+
+Usage:
+  myApp [<name>] [options]
+
+Arguments:
+  <name>  [default: World]
+
+Options:
+  --fg-color <Black|Blue|Cyan|DarkBlue|DarkCyan|DarkGray|DarkGreen|DarkMagenta|DarkRed|DarkYellow|Gray|Green|Magenta|Red|White|Yellow>  
+                           [default: White]
+  --repeat <repeat>        [default: 1]
+  --version                Show version information
+  -?, -h, --help           Show help and usage information
+```
 
 You can enhance it by providing descriptions. 
 
@@ -150,17 +163,31 @@ class Program
         int repeat = 1
     )
     {
-        Concole.ForegroundColor = fgColor;
+        Console.ForegroundColor = fgColor;
         for (int i=0; i<repeat; i++)
             Console.WriteLine($"Hello {name}!");
     }
 }
 ```
 
-> <p style="font-family:SFMono-Regular, Menlo, Monaco, Consolas, liberation mono, courier new, monospace;">
->   <span style="color:lightgray">> myApp -?</span><br>
->   <span style="color:white">...</span><br>
-> </p>
+```text
+> myApp -?
+Description:
+  Our sample Hello application
+
+Usage:
+  myApp [<name>] [options]
+
+Arguments:
+  <name>  The name to greet [default: World]
+
+Options:
+  --fg-color <Black|Blue|Cyan|DarkBlue|DarkCyan|DarkGray|DarkGreen|DarkMagenta|DarkRed|DarkYellow|Gray|Green|Magenta|Red|White|Yellow>  
+                            Foreground color for console output [default: White]
+  --repeat <repeat>         Number of lines to output [default: 1]
+  --version                 Show version information
+  -?, -h, --help            Show help and usage information
+```
 
 
 # Documentation
