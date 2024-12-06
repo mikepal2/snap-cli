@@ -10,15 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
+	  <PackageReference Include="coverlet.collector" Version="6.*" />
+	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+	  <PackageReference Include="MSTest.TestAdapter" Version="3.*" />
+	  <PackageReference Include="MSTest.TestFramework" Version="3.*" />
   </ItemGroup>
 
   <ItemGroup>
 	  <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-	  <ProjectReference Include="..\src\SnapCLI.csproj" />
+	  <ProjectReference Include="..\..\src\SnapCLI.csproj" />
+	  <ProjectReference Include="..\UnitTestsLib\UnitTestsLib.csproj" />
   </ItemGroup>
 
   <ItemGroup>

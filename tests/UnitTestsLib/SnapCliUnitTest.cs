@@ -1,4 +1,5 @@
-﻿using SnapCLI;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SnapCLI;
 using System.Text;
 using System.Text.RegularExpressions;
 
