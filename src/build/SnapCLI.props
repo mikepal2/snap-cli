@@ -3,5 +3,7 @@
   <PropertyGroup>
     <!-- Automatically generate Program.Main entry point which will call SnapCLI to parse command line -->
     <AutoGenerateEntryPoint>true</AutoGenerateEntryPoint>
+	<!-- SnapCLI supports Main() with multiple parameters -->
+	<NoWarn>$(NoWarn);CS0028</NoWarn>
   </PropertyGroup>
 </Project>
