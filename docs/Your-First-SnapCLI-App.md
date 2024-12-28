@@ -79,15 +79,15 @@ class Program
 
 You're ready to run your program.
 
-> <p style="font-family:SFMono-Regular, Menlo, Monaco, Consolas, liberation mono, courier new, monospace;">
->   <span style="color:lightgray">> myApp</span><br>
->   <span style="color:white">Hello World!</span><br>
->   <br>
->   <span style="color:lightgray">> myApp --name Michael --fg-color Yellow --repeat 3</span><br>
->   <span style="color:yellow">Hello Michael!</span><br>
->   <span style="color:yellow">Hello Michael!</span><br>
->   <span style="color:yellow">Hello Michael!</span><br>
-> </p>
+ <p style="font-family:SFMono-Regular, Menlo, Monaco, Consolas, liberation mono, courier new, monospace; background-color:black;">
+   <span style="color:lightgray">> myApp</span><br>
+   <span style="color:white">Hello World!</span><br>
+   <br>
+   <span style="color:lightgray">> myApp --name Michael --fg-color Yellow --repeat 3</span><br>
+   <span style="color:yellow">Hello Michael!</span><br>
+   <span style="color:yellow">Hello Michael!</span><br>
+   <span style="color:yellow">Hello Michael!</span><br>
+ </p>
 
 
 By default, SnapCLI binds every parameter of `Main` to an option. You can also have positional arguments by using the `[Argument]` attribute before a parameter. Let's change `name` to be an argument in your code:
@@ -111,16 +111,16 @@ class Program
 
 Now you don't need to specify `--name` when providing name argument on the command line.
 
-> <p style="font-family:SFMono-Regular, Menlo, Monaco, Consolas, liberation mono, courier new, monospace;">
->   <span style="color:lightgray">> myApp</span><br>
->   <span style="color:white">Hello World!</span><br>
->   <br>
->   <span style="color:lightgray">> myApp Michael</span><br>
->   <span style="color:white">Hello Michael!</span><br>
->   <br>
->   <span style="color:lightgray">> myApp Michael --color green</span><br>
->   <span style="color:green">Hello Michael!</span><br>
-> </p>
+ <p style="font-family:SFMono-Regular, Menlo, Monaco, Consolas, liberation mono, courier new, monospace; background-color:black;">
+   <span style="color:lightgray">> myApp</span><br>
+   <span style="color:white">Hello World!</span><br>
+   <br>
+   <span style="color:lightgray">> myApp Michael</span><br>
+   <span style="color:white">Hello Michael!</span><br>
+   <br>
+   <span style="color:lightgray">> myApp Michael --color green</span><br>
+   <span style="color:green">Hello Michael!</span><br>
+ </p>
 
 ## App Help
 

@@ -493,17 +493,39 @@ The command handler is the only *required* component that must be provided by th
 
 ### Main Method  
 
-Typically, the `Main` method serves as the entry point of a C# application and is often used for startup code. However, to simplify usage, this library overrides the program's entry point and uses command handler methods declared with `[Command]` and `[RootCommand]` attributes as the entry points instead.
-If some initialization code have to run on application start before command executed, it can be placed in [Startup](#startup) method or [BeforeCommand](#beforecommand) event handler. 
+Typically, the `Main` method serves as the entry point of a C# application and is often used for startup code.
 
-With this library, the `Main` method is allowed to be present in the program only if:
-- The program does not have any methods declared with `[Command]` or `[RootCommand]` attributes.
-- The `Main` method is explicitly declared with the `[RootCommand]` attribute.
+However, to simplify usage, this library overrides the program's entry point and uses command handler methods as the entry points instead.
 
-In these cases, `Main` will act as the handler for the [root command](#root-command). This approach allows to create simple CLI programs with minimal effort, similar to the one described in the [tutorial](./Your-First-SnapCLI-App.md), where most of the code resides in the `Main` method itself.
+#### Multi-Command Applications
+If the CLI program implements  multiple [commands](#commands), i.e. it has handlers declared with `[Command]` and/or `[RootCommand]` attributes, the library calls the handler depending on the command specified in the command line. In other words each handler works as a program entry point for the associated command. See [sample application](../Samples/base64/Program.cs) as an example.
 
-In all other cases, the library will raise an exception if the `Main` method is found. This behavior helps avoid confusion about why `Main` is not invoked when it is not associated with a command handler.
+With this proposition the `Main` method loses it's role and it presence may be confusing as it will **not** be executed at the start of the program as it is not associated with any command. To avoid such confusion the library will raise an exception if `Main` method is present along with any command handlers declared with `[Command]` attribute.
 
+ The application initialization code that have to run before any command executed can be placed in [Startup](#startup) method or [BeforeCommand](#beforecommand) event handler.
+
+#### Parametrized Main
+For simple applications that have no commands (and thus no command handlers) but only need options/arguments to be parsed from the command line, the library supports a *parametrized* `Main`, where method parameters are automatically mapped to the command line options/arguments. Such applications usually have most of the code in the `Main` method itself. For example:
+
+```csharp
+using SnapCLI;
+class Program 
+{
+    public static void Main([Argument] string arg, int intOption, string strOption = "foo")
+    {
+        Console.WriteLine($"Argument: {arg}");
+        Console.WriteLine($"Options are: {intOption}, {strOption}");
+    }
+}
+```
+
+This approach allows you to create simple CLI tools with minimal effort, providing a straightforward way to have type-checked options and arguments, as well as basic help functionality out of the box.
+
+A more detailed example is described in [this tutorial](./Your-First-SnapCLI-App.md).
+
+Technically, when there are no command handlers declared in the program and the `Main` method is present, the library automatically recognizes the `Main` method as the [root command](#root-command) handler. However, if the `Main` method is present alongside any command handlers, the library will raise an exception (this behavior helps to avoid confusion about why the `Main` method is not invoked when it is not associated with a command handler).
+
+#### Classic Main Behavior
 
 If you still really need to use your own `Main` in a classic way as the first entry point for the application, you can do so with following steps:
 1. Add `<AutoGenerateEntryPoint>false</AutoGenerateEntryPoint>` property into your program .csproj file

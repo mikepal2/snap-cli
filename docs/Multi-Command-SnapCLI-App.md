@@ -43,9 +43,7 @@ class Program
 
 > **Technical note:** In this example, the two methods `Encode()` and `Decode()` are declared with the `[Command]` attribute and represent two entry points for the CLI application, each associated with the corresponding command. The command names are automatically derived from the method names as `encode` and `decode`, respectively.
 
-> Note, that there is no `Main` method as with SnapCLI it doesn't represent application entry point. See more details on Main in [documentation](Documentation#main-method).
-
-automatically recognizes the `Main` method as the [root command](Documentation#root-command) 
+> Also note that the program does not have a `Main` method, as the SnapCLI library takes responsibility for starting up the application. See more details on `Main` in the [documentation](Documentation#main-method).
 
 The application is ready to run.
 
@@ -78,4 +76,6 @@ Now, let's add descriptions to make the help more user-friendly.
 
 Now, let's make it a bit more complex by adding the ability to read input from a file and write output to a file. For this, we will add `--input` and `--output` options for each command. We will also declare that the string argument and the `--input` option are mutually exclusive, i.e., only one of them can be specified on the command line at a time.
 
+```csharp
+```
 
