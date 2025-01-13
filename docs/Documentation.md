@@ -493,22 +493,20 @@ The command handler is the only *required* component that must be provided by th
 
 ### Main Method  
 
-Typically, the `Main` method serves as the entry point of a C# application and is often used for startup code.
+Typically, the `Main` method serves as the entry point for a C# application and is often used to execute startup code.
 
-However, to simplify usage, this library overrides the program's entry point and uses command handler methods as the entry points instead.
+However, to simplify the process of writing CLI applications, this library overrides the program's entry point, taking control from the very start of application execution. It then parses the command line and calls the appropriate command handler method, treating it as an entry point.
 
-#### Multi-Command Applications
-If the CLI program implements  multiple [commands](#commands), i.e. it has handlers declared with `[Command]` and/or `[RootCommand]` attributes, the library calls the handler depending on the command specified in the command line. In other words each handler works as a program entry point for the associated command. See [sample application](../Samples/base64/Program.cs) as an example.
+The program may still contain a `Main` method for simple applications, or it may not have a `Main` method at all, as described in the following sections.
 
-With this proposition the `Main` method loses it's role and it presence may be confusing as it will **not** be executed at the start of the program as it is not associated with any command. To avoid such confusion the library will raise an exception if `Main` method is present along with any command handlers declared with `[Command]` attribute.
+#### Parameterized Main
+For simple applications that do not involve commands (and thus no command handlers) but only need to parse options/arguments from the command line, the library supports a *parameterized* `Main` method. In this case, method parameters are automatically mapped to the command line options/arguments. Such applications typically contain most of their code directly within the `Main` method.
 
- The application initialization code that have to run before any command executed can be placed in [Startup](#startup) method or [BeforeCommand](#beforecommand) event handler.
-
-#### Parametrized Main
-For simple applications that have no commands (and thus no command handlers) but only need options/arguments to be parsed from the command line, the library supports a *parametrized* `Main`, where method parameters are automatically mapped to the command line options/arguments. Such applications usually have most of the code in the `Main` method itself. For example:
+Example:
 
 ```csharp
 using SnapCLI;
+
 class Program 
 {
     public static void Main([Argument] string arg, int intOption, string strOption = "foo")
@@ -519,26 +517,36 @@ class Program
 }
 ```
 
-This approach allows you to create simple CLI tools with minimal effort, providing a straightforward way to have type-checked options and arguments, as well as basic help functionality out of the box.
+This approach enables you to create simple CLI tools with minimal effort, providing type-checked options and arguments, as well as basic help functionality out of the box.
 
-A more detailed example is described in [this tutorial](./Your-First-SnapCLI-App.md).
+A more detailed example is provided in [this tutorial](./Your-First-SnapCLI-App.md).
 
-Technically, when there are no command handlers declared in the program and the `Main` method is present, the library automatically recognizes the `Main` method as the [root command](#root-command) handler. However, if the `Main` method is present alongside any command handlers, the library will raise an exception (this behavior helps to avoid confusion about why the `Main` method is not invoked when it is not associated with a command handler).
+From a technical perspective, if no command handlers are declared in the program and a `Main` method is present, the library automatically recognizes the `Main` method as the [root command](#root-command) handler.
+
+However, if the `Main` method is used alongside any command handlers, the library will raise an exception. See the next section for further details.
+
+#### Multi-Command Applications
+If your CLI program implements multiple [commands](#commands) (i.e., it has multiple handlers declared with `[Command]` and/or `[RootCommand]` attributes), the library will call the appropriate handler depending on the command specified on the command line. You can think of each handler method as a separate entry point into the program, each associated with its corresponding command. See the [sample application](../Samples/base64/Program.cs) for an example.
+
+Since the library overrides the program's entry point and the `Main` method is not associated with any command, it will **not** be executed at the start of the program. This can lead to confusion, as some developers may still expect it to run in the traditional way. To avoid this, the library will raise an exception if a `Main` method is present alongside any command handlers declared with the `[Command]` attribute.
+
+Any initialization code that must run before any commands are executed can be placed in the [Startup](#startup) method or the [BeforeCommand](#beforecommand) event handler.
 
 #### Classic Main Behavior
+If you need to use your own `Main` method as the first entry point for the application, you can do so by following these steps:
 
-If you still really need to use your own `Main` in a classic way as the first entry point for the application, you can do so with following steps:
-1. Add `<AutoGenerateEntryPoint>false</AutoGenerateEntryPoint>` property into your program .csproj file
-2. Call `SnapCLI` from your `Main()` method as follows
-    ```csharp
-    public static async Task<int> Main(string[] args)
-    {
-          // your initialization here
-        ...
-    
-        return await SnapCLI.CLI.RunAsync(args);
-    }
-    ```
+1. Add the `<AutoGenerateEntryPoint>false</AutoGenerateEntryPoint>` property to your program's `.csproj` file.
+2. Call `SnapCLI` from your `Main()` method as follows:
+
+```csharp
+public static async Task<int> Main(string[] args)
+{
+    // Your initialization code here
+    ...
+
+    return await SnapCLI.CLI.RunAsync(args);
+}
+```
 
 ### Startup
 The public static method can be declared to perform additional initialization using `[Startup]` attribute. There could be multiple startup methods in the assembly. These methods will be executed on application start and *before* command line is parsed. 
