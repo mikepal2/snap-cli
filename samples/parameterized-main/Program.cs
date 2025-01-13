@@ -23,11 +23,11 @@ class Program
 
 /* This program generates following output
    
-> simple-main -?
+> parameterized-main -?
 Description:
 
 Usage:
-  simple-main [<name>] [options]
+  parameterized-main [<name>] [options]
 
 Arguments:
   <name>  [default: World]
@@ -38,7 +38,7 @@ Options:
   --version                                                                                                                             Show version information
   -?, -h, --help                                                                                                                        Show help and usage information
 
-> simple-main Joe --fg-color Yellow --repeat 2
+> parameterized-main Joe --fg-color Yellow --repeat 2
 Hello Joe!
 Hello Joe!
 

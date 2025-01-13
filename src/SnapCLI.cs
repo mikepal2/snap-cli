@@ -814,7 +814,10 @@ namespace SnapCLI
                 var commandAttributes = GetCustomAttributes<MethodInfo, CommandAttribute>(method).ToArray();
                 if (commandAttributes.Length == 0)
                 {
-                    if (method.IsStatic && method.Name == "Main" && rootCommand?.Method != method)
+                    if (method.IsStatic && method.Name == "Main" 
+                        && rootCommand?.Method != method
+                        && !(new StackTrace(1, true)).GetFrames().Any(f => f.GetMethod() == method) // skip methods from current stack to support call from "classic" Main
+                        )
                     {
                         var declaringTypeName = method.DeclaringType?.FullName;
                         if (declaringTypeName != null &&
