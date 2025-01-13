@@ -1,7 +1,6 @@
 ﻿using SnapCLI;
-using System;
 
-// Simple CLI example with Main() method.
+// Simple CLI example with parameterized Main() method.
 //
 // Since there are no methods declared with the [Command] attribute, the SnapCLI library automatically binds the Main() method as the root command handler.
 // Any parameters of the Main() method are bound as options by default, even if they are not explicitly declared with the [Option] attribute,
