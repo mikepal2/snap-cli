@@ -8,12 +8,12 @@
 		<Authors>Michael Pavlushik</Authors>
 		<Description>Quickly create POSIX-like Command Line Interface (CLI) applications using a simple metadata API built on top of the System.CommandLine library.</Description>
 		<RepositoryUrl>https://github.com/mikepal2/snap-cli</RepositoryUrl>
-		<Version>2.0.2-pre</Version>
+		<Version>2.1.0-pre</Version>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageProjectUrl>https://github.com/mikepal2/snap-cli</PackageProjectUrl>
 		<PackageTags>Snap CLI Command Line Interface CommandLine Framework Quick Simple Easy</PackageTags>
-		<PackageReleaseNotes>Fix args validation</PackageReleaseNotes>
+		<PackageReleaseNotes>Add parameterized Main() support</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
